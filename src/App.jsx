@@ -246,7 +246,7 @@ function Agendador({leadData}){
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:14}}>
           {["09:00","10:00","11:00","13:00","14:00","15:00","16:00"].map(h=>{
             const ocu=!!blocked[`${selDia.dateStr}:${h}`];const sel=selHora===h;
-            return(<button key={h} disabled={ocu} onClick={()=>setSelHora(h)} style={{background:sel?"rgba(201,149,108,.2)":ocu?"rgba(255,255,255,.01)":"rgba(255,255,255,.04)",border:`1px solid ${sel?"rgba(201,149,108,.5)":ocu?"rgba(255,255,255,.03)":"rgba(255,255,255,.07)"}`,borderRadius:7,padding:"9px 3px",cursor:ocu?"not-allowed":"pointer",opacity:ocu?.25:1,transition:"all .2s"}}>
+            return(<button key={h} disabled={ocu} onClick={()=>setSelHora(h)} style={{background:sel?"rgba(201,149,108,.2)":ocu?"rgba(255,255,255,.01)":"rgba(255,255,255,.04)",border:`1px solid ${sel?"rgba(201,149,108,.5)":ocu?"rgba(255,255,255,.03)":"rgba(255,255,255,.07)"}`,borderRadius:7,padding:"9px 3px",cursor:ocu?"not-allowed":"pointer",opacity:ocu?0.25:1,transition:"all .2s"}}>
               <div style={{fontSize:11,fontWeight:700,color:sel?"#f0d9cc":ocu?"rgba(255,255,255,.2)":"rgba(255,255,255,.65)"}}>{h}</div>
             </button>);
           })}
@@ -484,9 +484,9 @@ export default function App(){
               </div>
 
               {/* H1 */}
-              <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?"clamp(38px,11vw,60px)":isTablet?"clamp(44px,6vw,72px)":"clamp(52px,7.5vw,100px)",fontWeight:700,lineHeight:.86,letterSpacing:-2,marginBottom:24,animation:"fadeUp .7s ease .1s both"}}>
-                <span style={{display:"block",WebkitTextStroke:`${isMobile?"1px":"1.5px"} rgba(240,217,204,.1)`,color:"transparent"}}>Ela adorou o resultado.</span>
-                <span style={{display:"block",WebkitTextStroke:`${isMobile?"1px":"1.5px"} rgba(240,217,204,.1)`,color:"transparent"}}>Sumiu mesmo assim.</span>
+              <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?"clamp(38px,11vw,60px)":isTablet?"clamp(44px,6vw,72px)":"clamp(52px,7.5vw,100px)",fontWeight:700,lineHeight:.88,letterSpacing:-2,marginBottom:24,animation:"fadeUp .7s ease .1s both"}}>
+                <span style={{display:"block",color:"rgba(240,217,204,.65)",fontWeight:300}}>Ela adorou o resultado.</span>
+                <span style={{display:"block",color:"rgba(240,217,204,.65)",fontWeight:300}}>Sumiu mesmo assim.</span>
                 <span className="shimmer-g" style={{display:"block",fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?"clamp(38px,11vw,60px)":isTablet?"clamp(44px,6vw,72px)":"clamp(52px,7.5vw,100px)",fontWeight:700,fontStyle:"italic",lineHeight:.9,letterSpacing:-2}}>Seu sistema não sabia agir.</span>
               </h1>
 
