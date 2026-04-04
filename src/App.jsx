@@ -220,7 +220,7 @@ function Agendador({leadData}){
       <div style={{width:56,height:56,borderRadius:"50%",background:"rgba(16,185,129,.12)",border:"1px solid rgba(16,185,129,.25)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}><Ic n="check_circle" size={28} col="#10b981"/></div>
       <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:17,fontWeight:700,color:"#f0d9cc",marginBottom:8}}>Demonstração confirmada!</div>
       <div style={{fontSize:14,color:"#10b981",fontWeight:600,marginBottom:6,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{diaAtual?.dia}, {diaAtual?.diaNum} de {diaAtual?.mes} · {horaSel}</div>
-      <div style={{fontSize:12,color:"rgba(255,255,255,.28)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>A equipe Ritual vai entrar em contato para confirmar o link da call.</div>
+      <div style={{fontSize:12,color:"rgba(255,255,255,.28)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>A equipe Wylvex vai entrar em contato para confirmar o link da call.</div>
     </div>
   );
 
@@ -301,11 +301,19 @@ export default function App(){
     const dados={...res,...form,nome:san(form.nome),clinica:san(form.clinica),whatsapp:san(form.whatsapp),perda,score:Math.min(95,70+(perda>5000?15:5)+(res.dor?10:0)),clinica_id:"wylvex",origem:"lp"};
     const lead=await sbInsert("leads",dados);
     setSavedLead({...dados,...lead});
-    // Confirmação automática — Zap + Email
+    // Confirmação automática — Zap + Email (variantes anti-ban)
     if(dados.whatsapp){
       const tel="55"+dados.whatsapp.replace(/\D/g,"");
-      const msgZap=`Olá, ${dados.nome?.split(" ")[0]}! ✨ Recebemos seu diagnóstico — a equipe Ritual vai entrar em contato em até 2 horas para confirmar sua demonstração. Fique de olho no seu WhatsApp! 🚀`;
-      fetch(`https://api.z-api.io/instances/3F128D53559E217AF6C44AC8C214C6FF/token/CF7035D32B046422FA85A547/send-text`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:tel,message:msgZap})}).catch(()=>{});
+      const nome1=dados.nome?.split(" ")[0]||"";
+      const perdaFmt=dados.perda?(dados.perda).toLocaleString("pt-BR"):"";
+      const variantes=[
+        `Oi, ${nome1}! Vi seu diagnóstico aqui 👋\n\nCalculei que você pode estar perdendo R$ ${perdaFmt}/mês em retornos que não acontecem na ${dados.clinica||"sua clínica"}.\n\nConsigo te mostrar como o Ritual resolve isso numa call de 30min. Faz sentido pra você?`,
+        `${nome1}, recebi seu diagnóstico agora\n\nO número que calculei foi R$ ${perdaFmt}/mês — é bastante coisa.\n\nVou te mandar os detalhes e a gente agenda a demo. Pode ser?`,
+        `Oi ${nome1}! Aqui é da equipe Wylvex 🎯\n\nSeu diagnóstico chegou — perda estimada de R$ ${perdaFmt}/mês em pacientes que somem antes do retorno.\n\nTenho um horário livre ainda essa semana. Quando seria melhor pra você?`,
+      ];
+      const idx=Math.floor(Date.now()/1000)%variantes.length;
+      const msgZap=variantes[idx];
+      fetch("https://api.z-api.io/instances/3F128D53559E217AF6C44AC8C214C6FF/token/CF7035D32B046422FA85A547/send-text",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:tel,message:msgZap})}).catch(()=>{});
     }
     if(dados.email){
       fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer re_3qbPKkwU_4B97XVYB1JdEjz8j9X5wajQf","Content-Type":"application/json"},body:JSON.stringify({from:"Ritual by Wylvex <noreply@wylvex.com>",to:dados.email,subject:"Diagnóstico recebido — Ritual",html:`<div style="font-family:sans-serif;max-width:500px;margin:0 auto"><h2 style="color:#c9956c">Olá, ${dados.nome?.split(" ")[0]}!</h2><p>Recebemos seu diagnóstico do Ritual. Nossa equipe vai entrar em contato em até <strong>2 horas</strong>.</p><p style="color:#888">Fique de olho no seu WhatsApp!</p></div>`})}).catch(()=>{});
@@ -576,7 +584,7 @@ export default function App(){
                 {savedLead.nome?.split(" ")[0]||"Olá"}, diagnóstico pronto.
               </h1>
               <p style={{fontSize:14,color:"rgba(240,217,204,.35)"}}>
-                A equipe Ritual entra em contato em até <span style={{color:"#c9956c",fontWeight:700}}>2 horas</span>.
+                A equipe Wylvex entra em contato em até <span style={{color:"#c9956c",fontWeight:700}}>2 horas</span>.
               </p>
             </div>
 
