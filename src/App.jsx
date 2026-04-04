@@ -6,19 +6,27 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const sGet=async(k,sh=true)=>{try{const r=await window.storage.get(k,sh);return r?JSON.parse(r.value):null;}catch{return null;}};
 const sSet=async(k,v,sh=true)=>{try{await window.storage.set(k,JSON.stringify(v),sh);}catch{}};
 
+const SUPA_URL="https://ncqsuxqxujyfekjbgzch.supabase.co";
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcXN1eHF4dWp5ZmVramJnemNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTcyMjAsImV4cCI6MjA5MDQ3MzIyMH0.xgwXSHE8dijOa7dtnzZ-CEG1_sP6L3yFvp3JYJ7LE3w";
+async function supaInsert(table,data){
+  try{
+    await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(data)});
+  }catch{}
+}
+
 async function salvarLead(dados){
   const leads=await sGet("ritual:leads_lp")||[];
   const l={
     id:Date.now(),nome:dados.nome,clinica:dados.clinica||"",nicho:"Harmonização",
     tel:dados.whatsapp,score:dados.score||70,perda:dados.perda||0,
-    status:"aquisicao",data:new Date().toISOString().slice(0,10),
+    status:"novo",data:new Date().toISOString().slice(0,10),
     hora:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),
     dor:dados.dor||"",pacientes:dados.pacientes||20,ticket:dados.ticket||500,
     novo:true,respostas:dados
   };
   await sSet("ritual:leads_lp",[l,...leads]);
   await sSet("ritual:ultimo_lead",{id:l.id,nome:l.nome,score:l.score,at:new Date().toISOString()});
-  try{fetch("https://ritual-backend-production.up.railway.app/api/leads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(l)});}catch{}
+  await supaInsert("leads",{nome:l.nome,clinica:l.clinica,tel:l.tel,score:l.score,perda:l.perda,status:"novo",dor:l.dor,pacientes:l.pacientes,ticket:l.ticket,origem:"lp"});
   return l;
 }
 
@@ -27,7 +35,7 @@ async function salvarReuniao(dados){
   const nova={id:Date.now(),...dados,at:new Date().toISOString(),origem:"lp",novo:true};
   await sSet("ritual:reunioes",[nova,...r]);
   await sSet("ritual:ultima_reuniao",{...nova,novo:true});
-  try{fetch("https://ritual-backend-production.up.railway.app/api/reunioes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(nova)});}catch{}
+  await supaInsert("reunioes",{nome:dados.nome,clinica:dados.clinica,tel:dados.tel,data:dados.data,hora:dados.hora,dia:dados.dia,score:dados.score,perda:dados.perda,origem:"lp"});
 }
 
 /* ══════════════════════════════════════
@@ -689,27 +697,24 @@ export default function App(){
             <div key={step} className="card" style={{padding:isMobile?"22px 18px":"40px 36px",animation:"cardIn .45s cubic-bezier(.16,1,.3,1)"}}>
 
               {/* SLIDER — pacientes */}
-              {etapaAtual?.tipo==="slider"&&(()=>{
-                const val=res.pacientes||20;
-                return(<div>
+              {etapaAtual?.tipo==="slider"&&<div>
                   <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?20:26,fontWeight:700,marginBottom:6,lineHeight:1.15}}>{etapaAtual.titulo}</h2>
                   <p style={{fontSize:12,color:"rgba(240,217,204,.35)",marginBottom:32}}>{etapaAtual.sub}</p>
                   <div style={{textAlign:"center",marginBottom:28}}>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:72,fontWeight:700,color:"#c9956c",lineHeight:1,fontStyle:"italic"}}>{val}</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:72,fontWeight:700,color:"#c9956c",lineHeight:1,fontStyle:"italic"}}>{res.pacientes||20}</div>
                     <div style={{fontSize:12,color:"rgba(240,217,204,.3)",marginTop:4}}>pacientes/mês</div>
                   </div>
-                  <input type="range" min={5} max={120} step={5} value={val} onChange={e=>setRes(p=>({...p,pacientes:+e.target.value}))} style={{marginBottom:24}}/>
+                  <input type="range" min={5} max={120} step={5} value={res.pacientes||20} onChange={e=>setRes(p=>({...p,pacientes:+e.target.value}))} style={{marginBottom:24}}/>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"rgba(240,217,204,.2)",marginBottom:28}}>
                     <span>5</span><span>120</span>
                   </div>
-                  <button className="cta" style={{width:"100%"}} onClick={()=>goNext(val,"pacientes")}>
-                    Confirmar: {val} pacientes/mês →
+                  <button className="cta" style={{width:"100%"}} onClick={()=>goNext(res.pacientes||20,"pacientes")}>
+                    Confirmar: {res.pacientes||20} pacientes/mês →
                   </button>
-                  {val>=20&&<div style={{marginTop:12,fontSize:11,color:"rgba(239,68,68,.5)",textAlign:"center"}}>
-                    Perda estimada: R$ {calcPerda(val,res.ticket||500).toLocaleString("pt-BR")}/mês sem retorno automático
+                  {(res.pacientes||20)>=20&&<div style={{marginTop:12,fontSize:11,color:"rgba(239,68,68,.5)",textAlign:"center"}}>
+                    Perda estimada: R$ {calcPerda(res.pacientes||20,res.ticket||500).toLocaleString("pt-BR")}/mês sem retorno automático
                   </div>}
-                </div>);
-              })()}
+                </div>}
 
               {/* CARDS — ticket */}
               {etapaAtual?.tipo==="cards"&&etapaAtual?.id==="ticket"&&(<div>
