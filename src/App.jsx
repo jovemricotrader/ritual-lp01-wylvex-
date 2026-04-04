@@ -301,6 +301,15 @@ export default function App(){
     const dados={...res,...form,nome:san(form.nome),clinica:san(form.clinica),whatsapp:san(form.whatsapp),perda,score:Math.min(95,70+(perda>5000?15:5)+(res.dor?10:0)),clinica_id:"wylvex",origem:"lp"};
     const lead=await sbInsert("leads",dados);
     setSavedLead({...dados,...lead});
+    // Confirmação automática — Zap + Email
+    if(dados.whatsapp){
+      const tel="55"+dados.whatsapp.replace(/\D/g,"");
+      const msgZap=`Olá, ${dados.nome?.split(" ")[0]}! ✨ Recebemos seu diagnóstico — a equipe Ritual vai entrar em contato em até 2 horas para confirmar sua demonstração. Fique de olho no seu WhatsApp! 🚀`;
+      fetch(`https://api.z-api.io/instances/3F128D53559E217AF6C44AC8C214C6FF/token/CF7035D32B046422FA85A547/send-text`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:tel,message:msgZap})}).catch(()=>{});
+    }
+    if(dados.email){
+      fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer re_3qbPKkwU_4B97XVYB1JdEjz8j9X5wajQf","Content-Type":"application/json"},body:JSON.stringify({from:"Ritual by Wylvex <noreply@wylvex.com>",to:dados.email,subject:"Diagnóstico recebido — Ritual",html:`<div style="font-family:sans-serif;max-width:500px;margin:0 auto"><h2 style="color:#c9956c">Olá, ${dados.nome?.split(" ")[0]}!</h2><p>Recebemos seu diagnóstico do Ritual. Nossa equipe vai entrar em contato em até <strong>2 horas</strong>.</p><p style="color:#888">Fique de olho no seu WhatsApp!</p></div>`})}).catch(()=>{});
+    }
     setLoading(false);setFase("resultado");
     if(topo.current)topo.current.scrollIntoView({behavior:"smooth"});
   };
