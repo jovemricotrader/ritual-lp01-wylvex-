@@ -313,10 +313,12 @@ export default function App(){
       ];
       const idx=Math.floor(Date.now()/1000)%variantes.length;
       const msgZap=variantes[idx];
-      fetch("https://api.z-api.io/instances/3F128D53559E217AF6C44AC8C214C6FF/token/CF7035D32B046422FA85A547/send-text",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:tel,message:msgZap})}).catch(()=>{});
+      // Route through server to avoid CORS
+      fetch("https://wylvex-backend-production.up.railway.app/api/confirm-lead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:tel,message:msgZap,nome:dados.nome,email:dados.email,perda:dados.perda,clinica:dados.clinica})}).catch(()=>{});
     }
     if(dados.email){
-      fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer re_3qbPKkwU_4B97XVYB1JdEjz8j9X5wajQf","Content-Type":"application/json"},body:JSON.stringify({from:"Ritual by Wylvex <noreply@wylvex.com>",to:dados.email,subject:"Diagnóstico recebido — Ritual",html:`<div style="font-family:sans-serif;max-width:500px;margin:0 auto"><h2 style="color:#c9956c">Olá, ${dados.nome?.split(" ")[0]}!</h2><p>Recebemos seu diagnóstico do Ritual. Nossa equipe vai entrar em contato em até <strong>2 horas</strong>.</p><p style="color:#888">Fique de olho no seu WhatsApp!</p></div>`})}).catch(()=>{});
+      // Email via servidor
+      if(dados.email){fetch("https://wylvex-backend-production.up.railway.app/api/confirm-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:dados.email,nome:dados.nome})}).catch(()=>{});}
     }
     setLoading(false);setFase("resultado");
     if(topo.current)topo.current.scrollIntoView({behavior:"smooth"});
