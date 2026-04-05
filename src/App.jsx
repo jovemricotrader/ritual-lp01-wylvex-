@@ -32,10 +32,11 @@ function san(s){ return typeof s==="string"?s.trim().replace(/[<>]/g,"").slice(0
 
 function gerarSlots(){
   const slots=[];const now=new Date();
-  for(let d=0;d<14;d++){
+  const HORAS=["09:00","10:00","11:00","13:00","14:00","15:00"];
+  for(let d=0;d<21;d++){
     const date=new Date(now);date.setDate(now.getDate()+d+1);
-    if([0,7].includes(date.getDay()))continue;
-    ["09:00","10:00","11:00","13:00","14:00","15:00","16:00"].forEach(h=>{
+    if(date.getDay()===0)continue;
+    HORAS.forEach(h=>{
       slots.push({date:date.toISOString().slice(0,10),hora:h,
         dia:["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][date.getDay()],
         diaNum:date.getDate(),
