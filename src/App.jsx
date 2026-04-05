@@ -354,6 +354,17 @@ export default function App(){
         input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#c9956c;cursor:pointer;box-shadow:0 0 14px rgba(201,149,108,.45);transition:transform .15s}
         input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
         ::-webkit-scrollbar{width:0;height:0}
+      
+      @keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+      @keyframes shimmerGold{0%{background-position:-200% center}100%{background-position:200% center}}
+      @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+      @keyframes countUp{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+      @keyframes borderPulse{0%,100%{border-color:rgba(201,149,108,.2)}50%{border-color:rgba(201,149,108,.5)}}
+      .fade-up{animation:fadeInUp .5s cubic-bezier(.16,1,.3,1) both}
+      .float{animation:float 4s ease-in-out infinite}
+      input:focus,select:focus,textarea:focus{outline:none!important;border-color:rgba(201,149,108,.5)!important;box-shadow:0 0 0 3px rgba(201,149,108,.08)!important;transition:all .2s}
+      button:hover{transform:translateY(-1px)}
+      button:active{transform:scale(.98)}
       `}</style>
 
       {/* NAV */}
