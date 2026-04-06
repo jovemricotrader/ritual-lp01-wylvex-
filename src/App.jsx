@@ -255,6 +255,10 @@ function Agendador({leadData}){
 
 /* ─── MAIN ─── */
 export default function App(){
+  const fbTrack=(e,d)=>{try{window.fbq&&window.fbq('track',e,d||{});}catch(_){}};
+  // Meta Pixel helpers
+  const fbTrack=(event,data)=>{try{if(window.fbq)window.fbq('track',event,data||{});}catch(e){}};
+  const fbTrackCustom=(event,data)=>{try{if(window.fbq)window.fbq('trackCustom',event,data||{});}catch(e){}};
   const [fase,setFase]=useState("hero");
   const [step,setStep]=useState(0);
   const [res,setRes]=useState({});
@@ -263,6 +267,7 @@ export default function App(){
   const [savedLead,setSavedLead]=useState(null);
   const [scrollY,setScrollY]=useState(0);
   const [isMobile,setIsMobile]=useState(false);
+  useEffect(()=>{try{window.fbq&&window.fbq("track","ViewContent",{content_name:"Ritual Diagnóstico"});}catch(_){}},[]);
   const [isTablet,setIsTablet]=useState(false);
   const topo=useRef(null);
 
@@ -321,7 +326,7 @@ export default function App(){
       // Email via servidor
       if(dados.email){fetch("https://wylvex-backend-production.up.railway.app/api/confirm-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:dados.email,nome:dados.nome})}).catch(()=>{});}
     }
-    setLoading(false);setFase("resultado");
+    setLoading(false);setFase("resultado");fbTrack("Lead",{content_name:"Agendamento Ritual",currency:"BRL",value:0});
     if(topo.current)topo.current.scrollIntoView({behavior:"smooth"});
   };
 
