@@ -182,7 +182,7 @@ export default function App(){
   const submit=async()=>{
     if(!form.nome.trim()||form.whatsapp.replace(/\D/g,"").length<10)return;
     setLoading(true);
-    const dados={...res,...form,nome:san(form.nome),clinica:san(form.clinica),whatsapp:san(form.whatsapp),
+    const dados={...res,...form,nome:san(form.nome),clinica:san(form.clinica),whatsapp:san(form.whatsapp),tel:san(form.whatsapp),
       perda,score:Math.min(95,70+(perda>5000?15:5)+(res.dor?10:0)),clinica_id:"wylvex",origem:"lp"};
     await sbInsert("leads",dados);
     setSavedLead(dados);
