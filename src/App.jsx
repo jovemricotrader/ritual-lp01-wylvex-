@@ -186,12 +186,7 @@ export default function App(){
       perda,score:Math.min(95,70+(perda>5000?15:5)+(res.dor?10:0)),clinica_id:"wylvex",origem:"lp"};
     await sbInsert("leads",dados);
     setSavedLead(dados);
-    if(dados.whatsapp){
-      fetch(`${HUB}/api/confirm-lead`,{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({phone:"55"+dados.whatsapp.replace(/\D/g,""),nome:dados.nome,email:dados.email,perda:dados.perda,clinica:dados.clinica}),
-      }).catch(()=>{});
-    }
+    // Zap enviado apenas após confirmar o horário (evita mensagem dupla)
     if(dados.email){
       fetch(`${HUB}/api/confirm-email`,{
         method:"POST",headers:{"Content-Type":"application/json"},
