@@ -11,7 +11,11 @@ async function sbInsert(table, data) {
       headers:{ apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, "Content-Type":"application/json", Prefer:"return=representation" },
       body: JSON.stringify(data),
     });
-    if(!r.ok){ console.error("[sbInsert]", r.status); return false; }
+    if(!r.ok){
+      const errBody = await r.text().catch(()=>"");
+      console.error("[sbInsert]", r.status, errBody.slice(0,300));
+      return false;
+    }
     return true;
   } catch(e){ console.error("[sbInsert]", e.message); return false; }
 }
@@ -182,8 +186,21 @@ export default function App(){
   const submit=async()=>{
     if(!form.nome.trim()||form.whatsapp.replace(/\D/g,"").length<10)return;
     setLoading(true);
-    const dados={...res,...form,nome:san(form.nome),clinica:san(form.clinica),whatsapp:san(form.whatsapp),tel:san(form.whatsapp),
-      perda,score:Math.min(95,70+(perda>5000?15:5)+(res.dor?10:0)),clinica_id:"wylvex",origem:"lp"};
+    const dados={
+      nome:san(form.nome),
+      clinica:san(form.clinica),
+      whatsapp:san(form.whatsapp),
+      tel:san(form.whatsapp),
+      email:san(form.email||""),
+      pacientes:parseInt(res.pacientes)||20,
+      ticket:res.ticket||"",
+      dor:res.dor||"",
+      perda:parseInt(perda)||0,
+      score:Math.min(95,70+(perda>5000?15:5)+(res.dor?10:0)),
+      clinica_id:"wylvex",
+      origem:"lp",
+      status:"novo",
+    };
     await sbInsert("leads",dados);
     setSavedLead(dados);
     // Zap enviado apenas após confirmar o horário (evita mensagem dupla)
