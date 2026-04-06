@@ -128,6 +128,7 @@ const G = `
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{overflow-x:hidden;-webkit-overflow-scrolling:touch;background:#080407}
   button,input,textarea{-webkit-appearance:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  input,textarea,select{font-size:max(16px,1em)!important}
   input::placeholder{color:rgba(240,217,204,.2)!important}
   input:focus{outline:none;border-color:rgba(201,149,108,.5)!important;background:rgba(201,149,108,.04)!important}
   ::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:rgba(201,149,108,.2)}
