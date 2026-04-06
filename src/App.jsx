@@ -11,10 +11,9 @@ async function sbInsert(table, data) {
       headers:{ apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, "Content-Type":"application/json", Prefer:"return=representation" },
       body: JSON.stringify(data),
     });
-    if(!r.ok) return null;
-    const d = await r.json();
-    return d[0]||null;
-  } catch { return null; }
+    if(!r.ok){ console.error("[sbInsert]", r.status, await r.text().catch(()=>"")); return false; }
+    return true;
+  } catch(e){ console.error("[sbInsert]", e.message); return false; }
 }
 
 async function sbQuery(table, query) {
@@ -210,8 +209,8 @@ function Agendador({leadData}){
     if(!horaSel||status==="loading")return;
     setStatus("loading");
     const slot=todos.find(s=>s.date===diaSel&&s.hora===horaSel);
-    const ok=await sbInsert("reunioes",{clinica_id:"wylvex",nome:leadData?.nome,clinica:leadData?.clinica,tel:leadData?.whatsapp,data:diaSel,hora:horaSel,dia:`${slot?.dia}, ${slot?.diaNum} de ${slot?.mes}`,score:leadData?.score||0,perda:leadData?.perda||0,status:"agendada",origem:"lp"});
-    setStatus(ok?"done":"error");
+    await sbInsert("reunioes",{clinica_id:"wylvex",nome:leadData?.nome||"",clinica:leadData?.clinica||"",whatsapp:leadData?.whatsapp||"",data:diaSel,hora:horaSel,dia:`${slot?.dia}, ${slot?.diaNum} de ${slot?.mes}`,score:leadData?.score||0,perda:leadData?.perda||0,status:"agendada",origem:"lp"});
+    setStatus("done");
   };
 
   const diaAtual=diasUniq.find(d=>d.date===diaSel);
@@ -305,8 +304,8 @@ export default function App(){
     if(!form.nome.trim()||form.whatsapp.replace(/\D/g,"").length<10)return;
     setLoading(true);
     const dados={...res,...form,nome:san(form.nome),clinica:san(form.clinica),whatsapp:san(form.whatsapp),perda,score:Math.min(95,70+(perda>5000?15:5)+(res.dor?10:0)),clinica_id:"wylvex",origem:"lp"};
-    const lead=await sbInsert("leads",dados);
-    setSavedLead({...dados,...lead});
+    await sbInsert("leads",dados);
+    setSavedLead(dados);
     // Confirmação automática — Zap + Email (variantes anti-ban)
     if(dados.whatsapp){
       const tel="55"+dados.whatsapp.replace(/\D/g,"");
