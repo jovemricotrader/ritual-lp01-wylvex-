@@ -256,9 +256,9 @@ function Agendador({leadData}){
 /* ─── MAIN ─── */
 export default function App(){
   const fbTrack=(e,d)=>{try{window.fbq&&window.fbq('track',e,d||{});}catch(_){}};
-  // Meta Pixel helpers
-  const fbTrack=(event,data)=>{try{if(window.fbq)window.fbq('track',event,data||{});}catch(e){}};
-  const fbTrackCustom=(event,data)=>{try{if(window.fbq)window.fbq('trackCustom',event,data||{});}catch(e){}};
+
+
+
   const [fase,setFase]=useState("hero");
   const [step,setStep]=useState(0);
   const [res,setRes]=useState({});
