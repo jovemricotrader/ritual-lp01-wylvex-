@@ -126,7 +126,7 @@ function Agendador({leadData}){
           );
         })}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
+      <div className="slots-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
         {horasDoDia.map(s=>{
           const sel=horaSel===s.hora;
           return(
@@ -216,7 +216,29 @@ export default function App(){
     inp:{background:"rgba(255,255,255,.04)",border:"1.5px solid rgba(255,255,255,.08)",color:"#f0d9cc",padding:"13px 14px",borderRadius:10,fontSize:14,width:"100%",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:10},
   };
 
-  const GS=`*{box-sizing:border-box;margin:0;padding:0}input::placeholder{color:rgba(240,217,204,.2)!important}::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:rgba(201,149,108,.3)}@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}@keyframes pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}`;
+  const GS=`
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  input,button,textarea{-webkit-appearance:none;appearance:none}
+  input::placeholder{color:rgba(240,217,204,.2)!important}
+  ::-webkit-scrollbar{width:2px}
+  ::-webkit-scrollbar-thumb{background:rgba(201,149,108,.3)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+  button{-webkit-tap-highlight-color:transparent}
+  input:focus{border-color:rgba(201,149,108,.45)!important;background:rgba(201,149,108,.03)!important}
+  @media(min-width:600px){
+    .lp-wrap{max-width:560px!important;padding:0 32px!important}
+    .hero-headline{font-size:52px!important}
+    .stats-grid{grid-template-columns:repeat(4,1fr)!important}
+    .compare-grid{grid-template-columns:1fr 1fr!important}
+    .slots-grid{grid-template-columns:repeat(4,1fr)!important}
+  }
+  @media(min-width:900px){
+    .lp-wrap{max-width:680px!important}
+    .hero-headline{font-size:64px!important}
+  }
+`;
 
   /* ── HERO ── */
   if(fase==="hero")return(
@@ -225,18 +247,18 @@ export default function App(){
       <style>{GS}</style>
 
       {/* HERO */}
-      <div style={{...S.wrap,paddingTop:60,paddingBottom:64}}>
+      <div className="lp-wrap" style={{...S.wrap,paddingTop:60,paddingBottom:64}}>
         <div style={{textAlign:"center",marginBottom:48}}>
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:42,fontWeight:700,fontStyle:"italic",color:"rgba(240,217,204,.9)",letterSpacing:2,marginBottom:4}}>ritual</div>
           <div style={{fontSize:9,color:"rgba(201,149,108,.4)",letterSpacing:4,textTransform:"uppercase"}}>by wylvex</div>
         </div>
         <div style={{textAlign:"center",marginBottom:32,animation:"fadeUp .6s ease both"}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:40,fontWeight:700,lineHeight:1.1,color:"rgba(240,217,204,.95)",marginBottom:16}}>
+          <div className="hero-headline" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:40,fontWeight:700,lineHeight:1.1,color:"rgba(240,217,204,.95)",marginBottom:16}}>
             Sua clínica está<br/><span style={{color:"#c9956c",fontStyle:"italic"}}>perdendo pacientes</span><br/>toda semana.
           </div>
           <div style={{fontSize:15,color:"rgba(255,255,255,.4)",lineHeight:1.75}}>Não porque ficaram insatisfeitas.<br/>Porque ninguém lembrou delas.</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:32,animation:"fadeUp .6s .1s ease both"}}>
+        <div className="stats-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:32,animation:"fadeUp .6s .1s ease both"}}>
           {[["18%","somem sem retornar"],["65%","voltam quando lembradas"],["R$4.800","setup único"],["30 dias","garantia total"]].map(([v,l])=>(
             <div key={l} style={{background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.06)",borderRadius:12,padding:"18px 14px",textAlign:"center"}}>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:700,color:"#c9956c",fontStyle:"italic"}}>{v}</div>
@@ -366,7 +388,7 @@ export default function App(){
     <div ref={topo} style={S.page}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
       <style>{GS}</style>
-      <div style={{...S.wrap,paddingTop:48,paddingBottom:80}}>
+      <div className="lp-wrap" style={{...S.wrap,paddingTop:48,paddingBottom:80}}>
         {/* Progress */}
         <div style={{display:"flex",gap:5,marginBottom:32}}>
           {ETAPAS.map((_,i)=>(
@@ -405,9 +427,9 @@ export default function App(){
                 <div style={{fontSize:11,color:"rgba(201,149,108,.5)",marginBottom:4}}>Sua perda estimada</div>
                 <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:700,color:"#c9956c",fontStyle:"italic"}}>R$ {perda.toLocaleString("pt-BR")}<span style={{fontSize:16,color:"rgba(201,149,108,.5)"}}>/mês</span></div>
               </div>
-              <input style={S.inp} placeholder="Seu nome" value={form.nome} onChange={e=>setForm(p=>({...p,nome:e.target.value}))}/>
-              <input style={S.inp} placeholder="Nome da clínica" value={form.clinica} onChange={e=>setForm(p=>({...p,clinica:e.target.value}))}/>
-              <input style={{...S.inp}} placeholder="WhatsApp (com DDD)" value={form.whatsapp} onChange={e=>setForm(p=>({...p,whatsapp:e.target.value}))} type="tel"/>
+              <input type="text" autoComplete="name" style={S.inp} placeholder="Seu nome" value={form.nome} onChange={e=>setForm(p=>({...p,nome:e.target.value}))}/>
+              <input type="text" style={S.inp} placeholder="Nome da clínica" value={form.clinica} onChange={e=>setForm(p=>({...p,clinica:e.target.value}))}/>
+              <input type="tel" autoComplete="tel" style={{...S.inp}} placeholder="WhatsApp (com DDD)" value={form.whatsapp} onChange={e=>setForm(p=>({...p,whatsapp:e.target.value}))} type="tel"/>
               <input style={S.inp} placeholder="Email (opcional)" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} type="email"/>
               <button style={{...S.btn,opacity:loading?.7:1}} onClick={submit} disabled={loading}>
                 {loading?"Calculando...":"Ver diagnóstico e agendar demo →"}
@@ -425,7 +447,7 @@ export default function App(){
     <div ref={topo} style={S.page}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
       <style>{GS}</style>
-      <div style={{...S.wrap,paddingTop:48,paddingBottom:80}}>
+      <div className="lp-wrap" style={{...S.wrap,paddingTop:48,paddingBottom:80}}>
         <div style={{animation:"fadeUp .5s ease both"}}>
           <div style={{textAlign:"center",marginBottom:24}}>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:700,fontStyle:"italic",color:"rgba(240,217,204,.6)",letterSpacing:2}}>ritual</div>
