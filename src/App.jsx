@@ -324,7 +324,7 @@ export default function App(){
     }
     if(dados.email){
       // Email via servidor
-      if(dados.email){fetch("https://wylvex-backend-production.up.railway.app/api/confirm-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:dados.email,nome:dados.nome})}).catch(()=>{});}
+      if(dados.email){fetch("https://wylvex-backend-production.up.railway.app/api/confirm-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:dados.email,nome:dados.nome,perda:dados.perda,clinica:dados.clinica})}).catch(()=>{});}
     }
     setLoading(false);setFase("resultado");fbTrack("Lead",{content_name:"Agendamento Ritual",currency:"BRL",value:0});
     if(topo.current)topo.current.scrollIntoView({behavior:"smooth"});
