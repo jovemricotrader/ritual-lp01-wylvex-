@@ -458,7 +458,7 @@ export default function App(){
                     Com o nome da sua clínica.<br/>Com as suas pacientes.<br/>
                     <strong style={{color:"rgba(240,217,204,.65)"}}>Com seu protocolo configurado.</strong>
                   </p>
-                  {[["search","IA identifica retornos toda manhã"],["schedule","Agenda priorizada por urgência"],["chat_bubble","WhatsApp no momento certo, automaticamente"]].map(([ic,t])=>(
+                  {[["search","Ritual mapeia retornos toda manhã"],["schedule","Agenda priorizada por urgência"],["chat_bubble","WhatsApp no momento certo, automaticamente"]].map(([ic,t])=>(
                     <div key={ic} style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
                       <div style={{width:32,height:32,borderRadius:"50%",background:"rgba(201,149,108,.1)",border:"1px solid rgba(201,149,108,.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <Ic n={ic} size={16} col="#c9956c"/>
