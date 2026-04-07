@@ -11,22 +11,16 @@ async function sbInsert(table, data) {
       headers:{ apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, "Content-Type":"application/json", Prefer:"return=representation" },
       body: JSON.stringify(data),
     });
-    if(!r.ok){
-      const errBody = await r.text().catch(()=>"");
-      console.error("[sbInsert]", r.status, errBody.slice(0,300));
-      return false;
-    }
+    if(!r.ok){ const e=await r.text().catch(()=>"");console.error("[sbInsert]",r.status,e.slice(0,200));return false; }
     return true;
-  } catch(e){ console.error("[sbInsert]", e.message); return false; }
+  } catch(e){ console.error("[sbInsert]",e.message);return false; }
 }
-
 async function sbQuery(table, query) {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/${table}${query}`, {
       headers:{ apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}` }
     });
-    if(!r.ok) return [];
-    return await r.json();
+    return r.ok ? await r.json() : [];
   } catch { return []; }
 }
 
@@ -35,15 +29,23 @@ function fbTrack(e,d){try{window.fbq&&window.fbq("track",e,d||{});}catch{}}
 
 function gerarSlots(){
   const slots=[];const now=new Date();
-  const HORAS=["09:00","10:00","11:00","13:00","14:00","15:00"];
+  const horaBrasilia=(now.getUTCHours()-3+24)%24;
+  const HORAS_HOJE=["09:00","10:00","11:00","13:00","14:00","15:00","16:00","17:00"].filter(h=>{
+    const [hh]=h.split(":").map(Number);return hh>horaBrasilia+1;
+  });
+  const HORAS_PROX=["09:00","10:00","11:00","13:00","14:00","15:00","16:00","17:00"];
   const MESES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
   const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  if(HORAS_HOJE.length>0&&now.getDay()!==0){
+    const dow=now.getDay();
+    for(const h of HORAS_HOJE)
+      slots.push({dateStr:now.toISOString().slice(0,10),hora:h,dia:DIAS[dow],diaNum:now.getDate(),mes:MESES[now.getMonth()]});
+  }
   for(let d=1;d<=7;d++){
     const date=new Date(now);date.setDate(now.getDate()+d);
     const dow=date.getDay();if(dow===0)continue;
-    for(const h of HORAS){
+    for(const h of HORAS_PROX)
       slots.push({dateStr:date.toISOString().slice(0,10),hora:h,dia:DIAS[dow],diaNum:date.getDate(),mes:MESES[date.getMonth()]});
-    }
   }
   return slots;
 }
@@ -79,6 +81,12 @@ function Agendador({leadData}){
       body:JSON.stringify({phone:"55"+((leadData?.whatsapp||"").replace(/\D/g,"")),
         nome:leadData?.nome,clinica:leadData?.clinica,perda:leadData?.perda,data:diaLabel,hora:horaSel}),
     }).catch(()=>{});
+    if(leadData?.email){
+      fetch(`${HUB}/api/confirm-email`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({to:leadData.email,nome:leadData.nome,perda:leadData.perda,clinica:leadData.clinica}),
+      }).catch(()=>{});
+    }
     fbTrack("Schedule",{content_name:"Demo Ritual"});
     setStatus("done");
   };
@@ -121,7 +129,7 @@ function Agendador({leadData}){
         })}
       </div>
       <button onClick={confirmar} disabled={!horaSel||status==="loading"}
-        style={{width:"100%",background:horaSel?"linear-gradient(135deg,#c9956c,#b8845b)":"rgba(255,255,255,.04)",border:`1px solid ${horaSel?"transparent":"rgba(255,255,255,.08)"}`,color:horaSel?"white":"rgba(255,255,255,.3)",borderRadius:10,padding:"15px",cursor:horaSel?"pointer":"not-allowed",fontSize:14,fontWeight:700,transition:"all .2s",WebkitTapHighlightColor:"transparent"}}>
+        style={{width:"100%",background:horaSel?"linear-gradient(135deg,#c9956c,#b8845b)":"rgba(255,255,255,.04)",border:"none",color:horaSel?"white":"rgba(255,255,255,.3)",borderRadius:10,padding:"15px",cursor:horaSel?"pointer":"not-allowed",fontSize:14,fontWeight:700,transition:"all .2s",WebkitTapHighlightColor:"transparent"}}>
         {status==="loading"?"Confirmando...":horaSel?`Confirmar · ${horaSel} →`:"Selecione um horário"}
       </button>
     </div>
@@ -133,47 +141,50 @@ const G = `
   html,body{overflow-x:hidden;-webkit-overflow-scrolling:touch;background:#080407}
   button,input,textarea{-webkit-appearance:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   input,textarea,select{font-size:max(16px,1em)!important}
-  input::placeholder{color:rgba(240,217,204,.2)!important}
-  input:focus{outline:none;border-color:rgba(201,149,108,.5)!important;background:rgba(201,149,108,.04)!important}
+  input::placeholder,textarea::placeholder{color:rgba(240,217,204,.2)!important}
+  input:focus,textarea:focus{outline:none;border-color:rgba(201,149,108,.5)!important}
   ::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:rgba(201,149,108,.2)}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  @keyframes pulse{0%,100%{opacity:.3;transform:scale(.95)}50%{opacity:.7;transform:scale(1.05)}}
-  @keyframes countUp{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+  @keyframes pulse{0%,100%{opacity:.3;transform:scale(.95)}50%{opacity:.8;transform:scale(1.05)}}
+  @keyframes countUp{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
   @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-  .shim{background:linear-gradient(90deg,#c9956c 0%,#f0d9cc 30%,#fff8f0 50%,#f0d9cc 70%,#c9956c 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 3s linear infinite}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+  .shim{background:linear-gradient(90deg,#c9956c 0%,#f0d9cc 35%,#fff8f0 50%,#f0d9cc 65%,#c9956c 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 3s linear infinite}
   @media(min-width:540px){.lp-wrap{max-width:520px!important;padding:0 28px!important}}
-  @media(min-width:900px){.lp-wrap{max-width:640px!important}.hero-hl{font-size:58px!important}.section-pad{padding:72px 0!important}}
+  @media(min-width:900px){.lp-wrap{max-width:600px!important}.hero-hl{font-size:56px!important}}
 `;
 
 export default function App(){
   const [fase,setFase]=useState("hero");
   const [step,setStep]=useState(0);
   const [res,setRes]=useState({});
-  const [form,setForm]=useState({nome:"",clinica:"",whatsapp:"",email:""});
+  const [form,setForm]=useState({nome:"",whatsapp:"",clinica:""});
   const [loading,setLoading]=useState(false);
   const [savedLead,setSavedLead]=useState(null);
   const [count,setCount]=useState(0);
+  const [active,setActive]=useState(0); // social proof counter
   const topo=useRef(null);
 
   useEffect(()=>{
     fbTrack("ViewContent",{content_name:"LP Ritual"});
-    // Animates the counter stat
-    let v=0;const target=18;const iv=setInterval(()=>{v+=1;setCount(v);if(v>=target)clearInterval(iv);},60);
+    let v=0;const iv=setInterval(()=>{v++;setCount(v);if(v>=18)clearInterval(iv);},50);
+    // Animate active count (fake social proof — "X analisaram essa semana")
+    setActive(Math.floor(Math.random()*12)+23); // 23-34
     return()=>clearInterval(iv);
   },[]);
 
-  const perda=Math.round((res.pacientes||20)*(
-    res.ticket==="Até R$500"?400:res.ticket==="R$500–1.000"?750:res.ticket==="R$1.000–2.000"?1500:2500
-  )*0.18);
+  // Ticket médio → valor numérico
+  const ticketVal = res.ticket==="Até R$500"?400:res.ticket==="R$500–1.000"?750:res.ticket==="R$1.000–2.000"?1500:res.ticket==="Acima de R$2.000"?2500:800;
+  const perda=Math.round((res.pacientes||20)*ticketVal*0.18);
 
   const ETAPAS=[
-    {id:"pacientes",tipo:"slider",titulo:"Quantas pacientes você atende por mês?",sub:"Calculamos exatamente quanto você está perdendo."},
-    {id:"ticket",tipo:"cards",titulo:"Qual o ticket médio por procedimento?",sub:"Toxina, preenchimento, bioestimulador...",
+    {id:"ticket",titulo:"Qual o ticket médio dos seus procedimentos?",sub:"Toxina, preenchimento, harmonização...",
       ops:[{ic:"💉",l:"Até R$500"},{ic:"💎",l:"R$500–1.000"},{ic:"✨",l:"R$1.000–2.000"},{ic:"👑",l:"Acima de R$2.000"}]},
-    {id:"dor",tipo:"cards",titulo:"O que mais trava hoje?",sub:"A resposta que mais dói.",
-      ops:[{ic:"👻",l:"Pacientes somem sem retornar"},{ic:"📱",l:"Dependente de indicação"},{ic:"⏰",l:"Sem tempo para follow-up"},{ic:"📉",l:"Agenda com buracos toda semana"}]},
-    {id:"contato",tipo:"form",titulo:"Quase lá.",sub:"Para onde enviamos seu diagnóstico?"},
+    {id:"pacientes",titulo:"Quantas pacientes você atende por mês?",sub:"Aproximadamente."},
+    {id:"dor",titulo:"O que mais te incomoda hoje?",sub:"",
+      ops:[{ic:"👻",l:"Pacientes somem sem retornar"},{ic:"📱",l:"Dependente de indicação"},{ic:"⏰",l:"Sem tempo para follow-up"},{ic:"📉",l:"Agenda com buracos"}]},
+    {id:"contato",titulo:"Pra onde enviamos seu diagnóstico?",sub:""},
   ];
 
   const etapa=ETAPAS[step];
@@ -184,31 +195,21 @@ export default function App(){
   };
 
   const submit=async()=>{
-    if(!form.nome.trim()||form.whatsapp.replace(/\D/g,"").length<10)return;
+    const wLen=form.whatsapp.replace(/\D/g,"").length;
+    if(!form.nome.trim()||wLen<10)return;
     setLoading(true);
     const dados={
-      nome:san(form.nome),
-      clinica:san(form.clinica),
-      whatsapp:san(form.whatsapp),
-      tel:san(form.whatsapp),
-      email:san(form.email||""),
+      nome:san(form.nome),clinica:san(form.clinica),
+      whatsapp:san(form.whatsapp),tel:san(form.whatsapp),
+      email:"",
       pacientes:parseInt(res.pacientes)||20,
       dor:san(res.dor||""),
       perda:parseInt(perda)||0,
       score:parseInt(Math.min(95,70+(perda>5000?15:5)+(res.dor?10:0))),
-      clinica_id:"wylvex",
-      origem:"lp",
-      status:"novo",
+      clinica_id:"wylvex",origem:"lp",status:"novo",
     };
     await sbInsert("leads",dados);
     setSavedLead(dados);
-    // Zap enviado apenas após confirmar o horário (evita mensagem dupla)
-    if(dados.email){
-      fetch(`${HUB}/api/confirm-email`,{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({to:dados.email,nome:dados.nome,perda,clinica:dados.clinica}),
-      }).catch(()=>{});
-    }
     fbTrack("Lead",{content_name:"Diagnóstico Ritual",currency:"BRL",value:0});
     setLoading(false);setFase("resultado");
     setTimeout(()=>topo.current?.scrollIntoView({behavior:"smooth"}),100);
@@ -217,245 +218,203 @@ export default function App(){
   const S={
     page:{fontFamily:"'Plus Jakarta Sans',sans-serif",background:"#080407",color:"#e8d8cc",minHeight:"100vh"},
     wrap:{maxWidth:460,margin:"0 auto",padding:"0 20px"},
-    btn:{background:"linear-gradient(135deg,#c9956c,#b8845b)",border:"none",color:"white",borderRadius:10,padding:"15px 24px",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%",letterSpacing:.3},
-    inp:{background:"rgba(255,255,255,.04)",border:"1.5px solid rgba(255,255,255,.08)",color:"#f0d9cc",padding:"14px",borderRadius:10,fontSize:14,width:"100%",fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:10,display:"block"},
+    btn:{background:"linear-gradient(135deg,#c9956c,#b8845b)",border:"none",color:"white",borderRadius:10,padding:"16px 24px",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%",letterSpacing:.3},
+    inp:{background:"rgba(255,255,255,.04)",border:"1.5px solid rgba(255,255,255,.08)",color:"#f0d9cc",padding:"15px",borderRadius:10,fontSize:14,width:"100%",fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:10,display:"block"},
   };
 
   /* ── HERO ── */
   if(fase==="hero")return(
     <div ref={topo} style={S.page}>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{G}</style>
 
       {/* TOP BAR */}
-      <div style={{borderBottom:"1px solid rgba(255,255,255,.04)",padding:"18px 20px",display:"flex",justifyContent:"center"}}>
-        <div style={{textAlign:"center"}}>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:"rgba(240,217,204,.7)",letterSpacing:3}}>ritual</span>
-          <span style={{fontSize:9,color:"rgba(201,149,108,.35)",letterSpacing:3,textTransform:"uppercase",marginLeft:8}}>by wylvex</span>
+      <div style={{borderBottom:"1px solid rgba(255,255,255,.04)",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",color:"rgba(240,217,204,.6)",letterSpacing:3}}>ritual</span>
+        {/* Social proof live */}
+        <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(16,185,129,.06)",border:"1px solid rgba(16,185,129,.15)",borderRadius:20,padding:"4px 10px"}}>
+          <div style={{width:5,height:5,borderRadius:"50%",background:"#10b981",animation:"pulse 2s infinite"}}/>
+          <span style={{fontSize:10,color:"rgba(16,185,129,.8)"}}>{active} diagnósticos essa semana</span>
         </div>
       </div>
 
-      {/* HERO */}
-      <div className="lp-wrap" style={{...S.wrap,paddingTop:52,paddingBottom:56}}>
+      {/* HERO — above fold */}
+      <div className="lp-wrap" style={{...S.wrap,paddingTop:44,paddingBottom:0}}>
 
-        {/* Badge */}
-        <div style={{display:"flex",justifyContent:"center",marginBottom:28}}>
-          <div style={{display:"inline-flex",alignItems:"center",gap:7,background:"rgba(201,149,108,.07)",border:"1px solid rgba(201,149,108,.2)",borderRadius:40,padding:"6px 16px"}}>
-            <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c",animation:"pulse 2s infinite"}}/>
-            <span style={{fontSize:10,color:"rgba(201,149,108,.7)",letterSpacing:3,textTransform:"uppercase"}}>gestão de retorno · harmonização</span>
-          </div>
-        </div>
-
-        {/* Headline */}
-        <div style={{textAlign:"center",marginBottom:28,animation:"fadeUp .7s ease both"}}>
-          <h1 className="hero-hl" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:700,lineHeight:1.05,color:"rgba(240,217,204,.95)",marginBottom:18,letterSpacing:-1}}>
-            Sua clínica está<br/>
-            <span className="shim" style={{fontStyle:"italic"}}>perdendo pacientes</span><br/>
-            toda semana.
+        {/* Headline — direct, above fold */}
+        <div style={{marginBottom:24,animation:"fadeUp .6s ease both"}}>
+          <h1 className="hero-hl" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:42,fontWeight:700,lineHeight:1.05,color:"rgba(240,217,204,.95)",marginBottom:14,letterSpacing:-1}}>
+            Você <span className="shim" style={{fontStyle:"italic"}}>perde pacientes</span> toda semana sem saber.
           </h1>
-          <p style={{fontSize:15,color:"rgba(255,255,255,.38)",lineHeight:1.8,fontWeight:300}}>
-            Não porque ficaram insatisfeitas.<br/>
-            <strong style={{color:"rgba(255,255,255,.6)",fontWeight:500}}>Porque ninguém lembrou delas.</strong>
+          <p style={{fontSize:15,color:"rgba(255,255,255,.4)",lineHeight:1.75,fontWeight:300}}>
+            Não por insatisfação — <strong style={{color:"rgba(255,255,255,.65)",fontWeight:500}}>porque ninguém lembrou delas no momento certo.</strong>
           </p>
         </div>
 
-        {/* Big animated stat */}
-        <div style={{textAlign:"center",marginBottom:32,animation:"fadeUp .7s .1s ease both"}}>
-          <div style={{background:"rgba(201,149,108,.04)",border:"1px solid rgba(201,149,108,.12)",borderRadius:16,padding:"24px 20px",position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#c9956c,transparent)"}}/>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:80,fontWeight:700,color:"#c9956c",fontStyle:"italic",lineHeight:.9,marginBottom:8,animation:"countUp .8s ease both"}}>{count}%</div>
-            <div style={{fontSize:14,color:"rgba(255,255,255,.45)",lineHeight:1.6}}>das suas pacientes <strong style={{color:"rgba(255,255,255,.7)"}}>somem em silêncio</strong> todo mês</div>
+        {/* Stat card — the hook */}
+        <div style={{background:"rgba(201,149,108,.05)",border:"1px solid rgba(201,149,108,.15)",borderRadius:16,padding:"20px",marginBottom:24,position:"relative",overflow:"hidden",animation:"fadeUp .6s .08s ease both"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#c9956c,transparent)"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:16}}>
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:72,fontWeight:700,color:"#c9956c",fontStyle:"italic",lineHeight:.9,animation:"countUp .8s ease both"}}>{count}%</div>
+              <div style={{fontSize:9,color:"rgba(201,149,108,.5)",letterSpacing:2,marginTop:4}}>da sua agenda</div>
+            </div>
+            <div>
+              <div style={{fontSize:14,fontWeight:600,color:"#f0d9cc",lineHeight:1.5,marginBottom:6}}>das suas pacientes somem antes do retorno ideal</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.3)",lineHeight:1.6}}>65% voltam quando alguém manda a mensagem certa no momento certo</div>
+            </div>
           </div>
         </div>
 
-        {/* Secondary stats */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:32,animation:"fadeUp .7s .15s ease both"}}>
-          {[["65%","voltam quando lembradas"],["30 dias","garantia ou devolução"]].map(([v,l])=>(
-            <div key={l} style={{background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.06)",borderRadius:12,padding:"16px 14px",textAlign:"center"}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:700,color:"#c9956c",fontStyle:"italic"}}>{v}</div>
-              <div style={{fontSize:11,color:"rgba(255,255,255,.3)",marginTop:4,lineHeight:1.4}}>{l}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div style={{animation:"fadeUp .7s .2s ease both"}}>
+        {/* CTA principal — above fold */}
+        <div style={{animation:"fadeUp .6s .15s ease both",marginBottom:10}}>
           <button style={S.btn} onClick={()=>{setFase("form");fbTrack("ViewContent",{content_name:"Diagnóstico"});}}>
-            Calcular minha perda mensal →
+            Ver meu diagnóstico grátis →
           </button>
-          <p style={{textAlign:"center",marginTop:10,fontSize:11,color:"rgba(255,255,255,.2)"}}>Gratuito · 3 minutos · sem compromisso</p>
+          <p style={{textAlign:"center",marginTop:8,fontSize:11,color:"rgba(255,255,255,.2)"}}>2 minutos · sem cartão · sem compromisso</p>
         </div>
       </div>
 
-      {/* COMO FUNCIONA */}
-      <div className="section-pad" style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:"56px 0"}}>
-        <div className="lp-wrap" style={S.wrap}>
-          <div style={{textAlign:"center",marginBottom:32}}>
-            <p style={{fontSize:9,color:"rgba(201,149,108,.45)",letterSpacing:4,textTransform:"uppercase",marginBottom:10}}>como funciona</p>
-            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:700,color:"rgba(240,217,204,.85)",fontStyle:"italic",lineHeight:1.15}}>O Ritual trabalha enquanto<br/>você atende.</h2>
-          </div>
-          {/* Timeline */}
-          <div style={{position:"relative",paddingLeft:32}}>
-            <div style={{position:"absolute",left:9,top:8,bottom:8,width:1,background:"linear-gradient(to bottom,rgba(201,149,108,.4),rgba(201,149,108,.1))"}}/>
-            {[
-              ["Monitora","Aprende o ciclo de cada paciente automaticamente."],
-              ["Identifica","Sabe quem precisa voltar — no momento exato."],
-              ["Envia","Mensagem personalizada no WhatsApp. Automático ou 1 clique."],
-              ["Aprende","Melhora com cada interação. Fica mais preciso todo dia."],
-            ].map(([t,d],i)=>(
-              <div key={t} style={{position:"relative",paddingBottom:i<3?28:0,paddingLeft:20}}>
-                <div style={{position:"absolute",left:-23,top:4,width:10,height:10,borderRadius:"50%",background:"#c9956c",border:"2px solid rgba(201,149,108,.2)"}}/>
-                <div style={{fontSize:14,fontWeight:700,color:"#f0d9cc",marginBottom:4}}>{t}</div>
-                <div style={{fontSize:13,color:"rgba(255,255,255,.38)",lineHeight:1.6}}>{d}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* DIVIDER */}
+      <div style={{height:1,background:"rgba(255,255,255,.04)",margin:"32px 0"}}/>
 
-      {/* ANTES VS DEPOIS */}
-      <div className="section-pad" style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:"56px 0",background:"linear-gradient(180deg,rgba(201,149,108,.02) 0%,transparent 100%)"}}>
-        <div className="lp-wrap" style={S.wrap}>
-          <div style={{textAlign:"center",marginBottom:28}}>
-            <p style={{fontSize:9,color:"rgba(201,149,108,.45)",letterSpacing:4,textTransform:"uppercase",marginBottom:10}}>a diferença</p>
-            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontWeight:700,color:"rgba(240,217,204,.85)",fontStyle:"italic"}}>Sem sistema vs. Com Ritual</h2>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div style={{background:"rgba(239,68,68,.04)",border:"1px solid rgba(239,68,68,.12)",borderRadius:14,padding:"18px 14px"}}>
-              <p style={{fontSize:9,letterSpacing:2,color:"rgba(239,68,68,.45)",textTransform:"uppercase",marginBottom:14}}>Sem sistema</p>
-              {["Paciente vai embora","Retorno na memória dela","3 meses: resultado ruindo","Ela foi pra outra clínica"].map(t=>(
-                <div key={t} style={{display:"flex",gap:8,marginBottom:9,alignItems:"flex-start"}}>
-                  <span style={{color:"rgba(239,68,68,.4)",fontSize:12,marginTop:1}}>✕</span>
-                  <span style={{fontSize:12,color:"rgba(255,255,255,.28)",lineHeight:1.5}}>{t}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{background:"rgba(16,185,129,.04)",border:"1px solid rgba(16,185,129,.18)",borderRadius:14,padding:"18px 14px",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#10b981,transparent)"}}/>
-              <p style={{fontSize:9,letterSpacing:2,color:"rgba(16,185,129,.55)",textTransform:"uppercase",marginBottom:14}}>Com Ritual</p>
-              {["Sistema monitora ciclo","Mensagem automática certa","Paciente responde, volta","Receita recuperada"].map(t=>(
-                <div key={t} style={{display:"flex",gap:8,marginBottom:9,alignItems:"flex-start"}}>
-                  <span style={{color:"#10b981",fontSize:12,marginTop:1}}>✓</span>
-                  <span style={{fontSize:12,color:"rgba(240,217,204,.6)",lineHeight:1.5}}>{t}</span>
-                </div>
-              ))}
-              <div style={{marginTop:12,background:"rgba(16,185,129,.08)",border:"1px solid rgba(16,185,129,.18)",borderRadius:9,padding:"10px 12px",textAlign:"center"}}>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,color:"#10b981",fontStyle:"italic"}}>R$ 4.200</div>
-                <div style={{fontSize:10,color:"rgba(16,185,129,.5)",marginTop:2}}>recuperados em 45 dias · SP</div>
-              </div>
+      {/* PROVA SOCIAL — abaixo do fold, reforço */}
+      <div className="lp-wrap" style={{...S.wrap,paddingBottom:0}}>
+        <div style={{fontSize:9,color:"rgba(255,255,255,.25)",letterSpacing:3,textTransform:"uppercase",marginBottom:14,textAlign:"center"}}>O que clínicas estão recuperando</div>
+        {[
+          {q:"Sistema avisou. Ela voltou.",r:"R$ 4.200 recuperados",s:"Harmonização · SP",i:"D"},
+          {q:"3 retornos na primeira semana.",r:"R$ 2.700 sem esforço",s:"Clínica estética · RJ",i:"C"},
+        ].map(({q,r,s,i})=>(
+          <div key={q} style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",gap:12,alignItems:"flex-start"}}>
+            <div style={{width:32,height:32,borderRadius:"50%",background:"rgba(201,149,108,.12)",border:"1px solid rgba(201,149,108,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#c9956c",flexShrink:0}}>{i}</div>
+            <div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",color:"rgba(240,217,204,.7)",marginBottom:6,lineHeight:1.5}}>{q}</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#c9956c"}}>{r}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,.25)",marginTop:2}}>{s}</div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
-      {/* PROVA SOCIAL */}
-      <div className="section-pad" style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:"56px 0"}}>
-        <div className="lp-wrap" style={S.wrap}>
-          <div style={{textAlign:"center",marginBottom:28}}>
-            <p style={{fontSize:9,color:"rgba(201,149,108,.45)",letterSpacing:4,textTransform:"uppercase",marginBottom:10}}>resultados reais</p>
-          </div>
+      <div style={{height:1,background:"rgba(255,255,255,.04)",margin:"28px 0"}}/>
+
+      {/* COMO FUNCIONA — curto */}
+      <div className="lp-wrap" style={{...S.wrap}}>
+        <div style={{fontSize:9,color:"rgba(255,255,255,.25)",letterSpacing:3,textTransform:"uppercase",marginBottom:16,textAlign:"center"}}>Como funciona</div>
+        <div style={{position:"relative",paddingLeft:28}}>
+          <div style={{position:"absolute",left:7,top:8,bottom:8,width:1,background:"linear-gradient(to bottom,rgba(201,149,108,.4),transparent)"}}/>
           {[
-            {q:'"Sistema avisou. Ela voltou."',r:"R$ 4.200 em 45 dias",s:"Harmonização Facial · SP"},
-            {q:'"Primeira semana, 3 retornos automáticos."',r:"R$ 2.700 sem esforço",s:"Clínica estética · RJ"},
-            {q:'"Nunca mais perco paciente sem saber."',r:"Pipeline 100% visível",s:"Clínica premium · Curitiba"},
-          ].map(({q,r,s})=>(
-            <div key={q} style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.06)",borderRadius:12,padding:"18px 16px",marginBottom:10,borderLeft:"2px solid rgba(201,149,108,.3)"}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontStyle:"italic",color:"rgba(240,217,204,.75)",marginBottom:10,lineHeight:1.55}}>{q}</div>
-              <div style={{fontSize:14,fontWeight:700,color:"#c9956c",marginBottom:3}}>{r}</div>
-              <div style={{fontSize:11,color:"rgba(255,255,255,.25)"}}>{s}</div>
+            ["Monitora","Aprende o ciclo de cada paciente automaticamente."],
+            ["Identifica","Sabe quem precisa voltar — no momento exato."],
+            ["Dispara","WhatsApp personalizado. Automático. Sem trabalho seu."],
+          ].map(([t,d],i)=>(
+            <div key={t} style={{position:"relative",paddingBottom:i<2?22:0,paddingLeft:18}}>
+              <div style={{position:"absolute",left:-21,top:5,width:8,height:8,borderRadius:"50%",background:"#c9956c"}}/>
+              <div style={{fontSize:13,fontWeight:700,color:"#f0d9cc",marginBottom:3}}>{t}</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.35)",lineHeight:1.6}}>{d}</div>
             </div>
           ))}
         </div>
       </div>
+
+      <div style={{height:1,background:"rgba(255,255,255,.04)",margin:"28px 0"}}/>
 
       {/* GARANTIA + CTA FINAL */}
-      <div className="section-pad" style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:"56px 0",background:"linear-gradient(180deg,transparent,rgba(201,149,108,.03) 100%)"}}>
-        <div className="lp-wrap" style={{...S.wrap,textAlign:"center"}}>
-          <div style={{fontSize:52,marginBottom:16}}>🛡️</div>
-          <p style={{fontSize:9,color:"rgba(201,149,108,.45)",letterSpacing:4,textTransform:"uppercase",marginBottom:12}}>risco zero</p>
-          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:700,color:"rgba(240,217,204,.9)",fontStyle:"italic",lineHeight:1.1,marginBottom:16}}>
-            30 dias.<br/>Resultado ou devolvo.
-          </h2>
-          <p style={{fontSize:14,color:"rgba(255,255,255,.38)",lineHeight:1.85,marginBottom:28,fontWeight:300}}>
-            Se o Ritual não trouxer nenhuma paciente de volta<br/>em 30 dias — <strong style={{color:"#f0d9cc",fontWeight:500}}>devolvo tudo. Sem pergunta.</strong>
-          </p>
-          <button style={S.btn} onClick={()=>{setFase("form");fbTrack("ViewContent",{content_name:"CTA Garantia"});}}>
-            Ver diagnóstico gratuito →
-          </button>
-          <p style={{marginTop:10,fontSize:11,color:"rgba(255,255,255,.2)"}}>3 minutos · sem compromisso · sem cartão</p>
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <div style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:"28px 20px",textAlign:"center"}}>
-        <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic",color:"rgba(201,149,108,.25)",marginBottom:5}}>ritual</p>
-        <p style={{fontSize:10,color:"rgba(255,255,255,.12)",letterSpacing:2}}>by wylvex · wylvex.tech</p>
+      <div className="lp-wrap" style={{...S.wrap,paddingBottom:64,textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:12}}>🛡️</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:700,color:"rgba(240,217,204,.9)",fontStyle:"italic",marginBottom:10,lineHeight:1.1}}>30 dias.<br/>Resultado ou devolvo tudo.</div>
+        <p style={{fontSize:13,color:"rgba(255,255,255,.35)",lineHeight:1.8,marginBottom:24}}>Se o Ritual não trouxer nenhuma paciente de volta em 30 dias — <strong style={{color:"#f0d9cc"}}>devolução total. Sem pergunta.</strong></p>
+        <button style={S.btn} onClick={()=>{setFase("form");fbTrack("ViewContent",{content_name:"CTA Garantia"});}}>
+          Ver meu diagnóstico grátis →
+        </button>
+        <p style={{marginTop:8,fontSize:11,color:"rgba(255,255,255,.2)"}}>2 minutos · sem cartão</p>
+        <p style={{marginTop:20,fontSize:10,color:"rgba(255,255,255,.12)",letterSpacing:2}}>ritual · by wylvex</p>
       </div>
     </div>
   );
 
-  /* ── FORM ── */
+  /* ── FORM (funil 4 etapas) ── */
   if(fase==="form")return(
     <div ref={topo} style={S.page}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{G}</style>
-      <div className="lp-wrap" style={{...S.wrap,paddingTop:44,paddingBottom:80}}>
+      <div className="lp-wrap" style={{...S.wrap,paddingTop:40,paddingBottom:80}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:28}}>
-          <button onClick={()=>{if(step>0)setStep(s=>s-1);else setFase("hero");}} style={{background:"none",border:"none",color:"rgba(255,255,255,.3)",cursor:"pointer",fontSize:20,padding:"4px 8px"}}>←</button>
+          <button onClick={()=>{if(step>0)setStep(s=>s-1);else setFase("hero");}} style={{background:"none",border:"none",color:"rgba(255,255,255,.3)",cursor:"pointer",fontSize:22,padding:"4px 8px",lineHeight:1}}>←</button>
+          {/* Progress bar */}
           <div style={{display:"flex",gap:5,flex:1,margin:"0 12px"}}>
             {ETAPAS.map((_,i)=>(
-              <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<=step?"#c9956c":"rgba(255,255,255,.06)",transition:"background .3s"}}/>
+              <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<=step?"#c9956c":"rgba(255,255,255,.07)",transition:"background .3s"}}/>
             ))}
           </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.25)",whiteSpace:"nowrap"}}>{step+1}/{ETAPAS.length}</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.2)",whiteSpace:"nowrap"}}>{Math.round((step/(ETAPAS.length-1))*100)||0}%</div>
         </div>
 
-        <div style={{animation:"fadeUp .4s ease both"}}>
-          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:700,color:"#f0d9cc",marginBottom:8,lineHeight:1.2}}>{etapa.titulo}</h2>
-          <p style={{fontSize:13,color:"rgba(255,255,255,.35)",marginBottom:24,lineHeight:1.6}}>{etapa.sub}</p>
+        <div style={{animation:"fadeUp .35s ease both"}}>
+          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:27,fontWeight:700,color:"#f0d9cc",marginBottom:6,lineHeight:1.2}}>{etapa.titulo}</h2>
+          {etapa.sub&&<p style={{fontSize:13,color:"rgba(255,255,255,.35)",marginBottom:22,lineHeight:1.6}}>{etapa.sub}</p>}
+          {!etapa.sub&&<div style={{marginBottom:22}}/>}
 
-          {etapa.tipo==="slider"&&(
+          {/* CARDS (ticket + dor) */}
+          {etapa.ops&&(
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {etapa.ops.map(op=>(
+                <button key={op.l} onClick={()=>{setRes(p=>({...p,[etapa.id]:op.l}));setTimeout(()=>goNext(op.l,etapa.id),100);}}
+                  style={{background:"rgba(255,255,255,.03)",border:"1.5px solid rgba(255,255,255,.08)",borderRadius:11,padding:"15px 16px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12,color:"rgba(240,217,204,.75)",fontSize:14,transition:"all .12s",WebkitTapHighlightColor:"transparent"}}
+                  onTouchStart={e=>e.currentTarget.style.background="rgba(201,149,108,.06)"}
+                  onTouchEnd={e=>e.currentTarget.style.background="rgba(255,255,255,.03)"}>
+                  <span style={{fontSize:22,flexShrink:0}}>{op.ic}</span>
+                  <span style={{fontWeight:500}}>{op.l}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* PACIENTES slider */}
+          {etapa.id==="pacientes"&&!etapa.ops&&(
             <div>
-              <div style={{textAlign:"center",marginBottom:20}}>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:64,fontWeight:700,color:"#c9956c",fontStyle:"italic",lineHeight:1}}>{res.pacientes||20}</div>
-                <div style={{fontSize:12,color:"rgba(255,255,255,.3)",marginTop:4}}>pacientes/mês</div>
+              <div style={{textAlign:"center",marginBottom:20,padding:"20px",background:"rgba(201,149,108,.04)",borderRadius:12,border:"1px solid rgba(201,149,108,.1)"}}>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:68,fontWeight:700,color:"#c9956c",fontStyle:"italic",lineHeight:1}}>{res.pacientes||20}</div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,.35)",marginTop:4}}>pacientes/mês</div>
+                {(res.ticket||res.pacientes)&&<div style={{marginTop:10,fontSize:12,color:"rgba(201,149,108,.6)"}}>
+                  ≈ R$ {Math.round((res.pacientes||20)*ticketVal*0.18).toLocaleString("pt-BR")}/mês em retornos perdidos
+                </div>}
               </div>
-              <input type="range" min={5} max={200} value={res.pacientes||20}
+              <input type="range" min={5} max={200} step={5} value={res.pacientes||20}
                 onChange={e=>setRes(p=>({...p,pacientes:+e.target.value}))}
                 style={{width:"100%",accentColor:"#c9956c",marginBottom:24,height:4}}/>
               <button style={S.btn} onClick={()=>goNext(res.pacientes||20,"pacientes")}>Continuar →</button>
             </div>
           )}
 
-          {etapa.tipo==="cards"&&(
-            <div style={{display:"flex",flexDirection:"column",gap:9}}>
-              {etapa.ops.map(op=>(
-                <button key={op.l} onClick={()=>{setRes(p=>({...p,[etapa.id]:op.v||op.l}));setTimeout(()=>goNext(op.v||op.l,etapa.id),120);}}
-                  style={{background:"rgba(255,255,255,.03)",border:"1.5px solid rgba(255,255,255,.08)",borderRadius:11,padding:"15px 16px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12,color:"rgba(240,217,204,.7)",fontSize:14,transition:"border-color .15s"}}>
-                  {op.ic&&<span style={{fontSize:22}}>{op.ic}</span>}
-                  <span>{op.l}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {etapa.tipo==="form"&&(
+          {/* CONTATO form */}
+          {etapa.id==="contato"&&(
             <div>
-              <div style={{background:"linear-gradient(135deg,rgba(201,149,108,.06),rgba(201,149,108,.03))",border:"1px solid rgba(201,149,108,.15)",borderRadius:14,padding:"18px",marginBottom:22,textAlign:"center"}}>
-                <p style={{fontSize:10,color:"rgba(201,149,108,.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Sua perda estimada</p>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:42,fontWeight:700,color:"#c9956c",fontStyle:"italic"}}>
+              {/* Perda preview card */}
+              <div style={{background:"linear-gradient(135deg,rgba(201,149,108,.08),rgba(201,149,108,.03))",border:"1px solid rgba(201,149,108,.2)",borderRadius:14,padding:"18px",marginBottom:20,textAlign:"center",position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#c9956c,transparent)"}}/>
+                <div style={{fontSize:10,color:"rgba(201,149,108,.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Sua perda estimada</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:700,color:"#c9956c",fontStyle:"italic",lineHeight:1}}>
                   R$ {perda.toLocaleString("pt-BR")}<span style={{fontSize:16,color:"rgba(201,149,108,.5)"}}>/mês</span>
                 </div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,.3)",marginTop:6}}>{res.pacientes||20} pacientes · ticket {res.ticket||"médio"}</div>
               </div>
-              <input type="text" autoComplete="name" style={S.inp} placeholder="Seu nome" value={form.nome} onChange={e=>setForm(p=>({...p,nome:e.target.value}))}/>
-              <input type="text" style={S.inp} placeholder="Nome da clínica" value={form.clinica} onChange={e=>setForm(p=>({...p,clinica:e.target.value}))}/>
-              <input type="tel" autoComplete="tel" style={S.inp} placeholder="WhatsApp (com DDD)" value={form.whatsapp} onChange={e=>setForm(p=>({...p,whatsapp:e.target.value}))}/>
-              <input type="email" autoComplete="email" style={S.inp} placeholder="Email (opcional)" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))}/>
-              <button style={{...S.btn,opacity:loading?.75:1}} onClick={submit} disabled={loading||!form.nome.trim()||form.whatsapp.replace(/\D/g,"").length<10}>
-                {loading?"Calculando...":"Ver diagnóstico e agendar →"}
+
+              {/* 2 campos apenas — máximo simplicidade */}
+              <input type="text" autoComplete="name" style={S.inp} placeholder="Seu nome" value={form.nome}
+                onChange={e=>setForm(p=>({...p,nome:e.target.value}))}/>
+              <input type="text" style={S.inp} placeholder="Nome da clínica (opcional)" value={form.clinica}
+                onChange={e=>setForm(p=>({...p,clinica:e.target.value}))}/>
+              <input type="tel" autoComplete="tel" style={S.inp} placeholder="WhatsApp com DDD" value={form.whatsapp}
+                onChange={e=>setForm(p=>({...p,whatsapp:e.target.value}))}/>
+
+              <button style={{...S.btn,opacity:loading?0.7:1,marginTop:4}}
+                onClick={submit}
+                disabled={loading||!form.nome.trim()||form.whatsapp.replace(/\D/g,"").length<10}>
+                {loading?"Gerando diagnóstico...":"Ver diagnóstico e agendar →"}
               </button>
-              <p style={{fontSize:10,color:"rgba(255,255,255,.18)",textAlign:"center",marginTop:10,lineHeight:1.6}}>Seus dados são confidenciais. Não compartilhamos com ninguém.</p>
+              <p style={{fontSize:10,color:"rgba(255,255,255,.18)",textAlign:"center",marginTop:10,lineHeight:1.6}}>Dados confidenciais. Não compartilhamos.</p>
             </div>
           )}
         </div>
@@ -468,42 +427,42 @@ export default function App(){
     <div ref={topo} style={S.page}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{G}</style>
-      <div className="lp-wrap" style={{...S.wrap,paddingTop:44,paddingBottom:80}}>
+      <div className="lp-wrap" style={{...S.wrap,paddingTop:40,paddingBottom:80}}>
+
         <div style={{animation:"fadeUp .5s ease both"}}>
-          {/* Logo */}
-          <div style={{textAlign:"center",marginBottom:24}}>
-            <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontStyle:"italic",color:"rgba(201,149,108,.4)",letterSpacing:3}}>ritual</span>
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:"rgba(201,149,108,.35)",letterSpacing:3}}>ritual</span>
           </div>
-          {/* Perda */}
-          <div style={{background:"linear-gradient(135deg,rgba(201,149,108,.07),rgba(201,149,108,.03))",border:"1px solid rgba(201,149,108,.18)",borderRadius:16,padding:"24px 18px",marginBottom:18,textAlign:"center",position:"relative",overflow:"hidden"}}>
+
+          {/* BIG perda number */}
+          <div style={{background:"linear-gradient(135deg,rgba(201,149,108,.08),rgba(201,149,108,.03))",border:"1px solid rgba(201,149,108,.2)",borderRadius:16,padding:"26px 20px",marginBottom:16,textAlign:"center",position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#c9956c,transparent)"}}/>
-            <p style={{fontSize:10,color:"rgba(201,149,108,.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Perda estimada identificada</p>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:48,fontWeight:700,color:"#c9956c",fontStyle:"italic"}}>
+            <div style={{fontSize:10,color:"rgba(201,149,108,.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Diagnóstico de {(savedLead?.nome||"").split(" ")[0]}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:52,fontWeight:700,color:"#c9956c",fontStyle:"italic",lineHeight:1}}>
               R$ {perda.toLocaleString("pt-BR")}<span style={{fontSize:18,color:"rgba(201,149,108,.5)"}}>/mês</span>
             </div>
-            <p style={{fontSize:12,color:"rgba(255,255,255,.3)",marginTop:6}}>em pacientes que somem antes do retorno</p>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.35)",marginTop:8}}>em retornos que não acontecem na {savedLead?.clinica||"sua clínica"}</div>
           </div>
-          {/* Mensagem */}
-          <p style={{fontSize:14,color:"rgba(255,255,255,.45)",lineHeight:1.8,marginBottom:20,textAlign:"center"}}>
-            <strong style={{color:"#f0d9cc"}}>{(savedLead?.nome||"").split(" ")[0]}</strong>, nossa equipe entra em contato pelo WhatsApp em breve.<br/>Enquanto isso, reserve um horário:
-          </p>
+
+          {/* Next step message */}
+          <div style={{background:"rgba(16,185,129,.05)",border:"1px solid rgba(16,185,129,.15)",borderRadius:12,padding:"14px 16px",marginBottom:20,display:"flex",gap:10,alignItems:"flex-start"}}>
+            <span style={{fontSize:18,flexShrink:0}}>📱</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:"#10b981",marginBottom:3}}>WhatsApp em breve</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.4)",lineHeight:1.6}}>Nossa equipe vai entrar em contato pra mostrar ao vivo como o Ritual recupera esse valor.</div>
+            </div>
+          </div>
+
           {/* Agendador */}
           <div style={{marginBottom:24}}>
-            <p style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,.5)",marginBottom:12,letterSpacing:.3}}>📅 Agendar demonstração gratuita</p>
+            <div style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,.45)",marginBottom:12,letterSpacing:.3}}>📅 Agendar demonstração agora (30min)</div>
             <Agendador leadData={savedLead}/>
           </div>
-          {/* Próximos passos */}
-          <div style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.06)",borderRadius:12,padding:"18px 16px"}}>
-            <p style={{fontSize:9,color:"rgba(255,255,255,.22)",letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>O que acontece agora</p>
-            {[["📱","WhatsApp em breve","Nossa equipe confirma o horário"],["🎯","Demo de 30min","Ritual ao vivo com dados da sua clínica"],["🛡️","30 dias de garantia","Resultado ou devolução total"]].map(([ic,t,d])=>(
-              <div key={t} style={{display:"flex",gap:12,marginBottom:12,alignItems:"flex-start"}}>
-                <span style={{fontSize:20,flexShrink:0}}>{ic}</span>
-                <div>
-                  <p style={{fontSize:13,fontWeight:600,color:"#f0d9cc",marginBottom:2}}>{t}</p>
-                  <p style={{fontSize:12,color:"rgba(255,255,255,.28)"}}>{d}</p>
-                </div>
-              </div>
-            ))}
+
+          {/* Garantia lembrete */}
+          <div style={{textAlign:"center",padding:"16px",background:"rgba(255,255,255,.02)",borderRadius:12,border:"1px solid rgba(255,255,255,.04)"}}>
+            <div style={{fontSize:22,marginBottom:6}}>🛡️</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.3)",lineHeight:1.7}}>30 dias de garantia.<br/>Resultado ou <strong style={{color:"rgba(255,255,255,.5)"}}>devolução total</strong>.</div>
           </div>
         </div>
       </div>
