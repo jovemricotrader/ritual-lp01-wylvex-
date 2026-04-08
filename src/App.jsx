@@ -25,7 +25,7 @@ async function salvarLead(dados) {
     nome: dados.nome, clinica: dados.clinica||"",
     whatsapp: (dados.whatsapp||"").replace(/\D/g,""),
     tel: (dados.whatsapp||"").replace(/\D/g,""),
-    email: "",
+    email: dados.email||"",
     pacientes: parseInt(dados.pacientes)||20,
     dor: dados.dor||"",
     perda: parseInt(dados.perda)||0,
@@ -48,13 +48,22 @@ async function salvarLead(dados) {
 }
 
 async function salvarReuniao(dados){
-  const r=await sGet("ritual:reunioes")||[];
-  const nova={id:Date.now(),...dados,at:new Date().toISOString(),origem:"lp",novo:true};
-  await sSet("ritual:reunioes",[nova,...r]);
-  await sSet("ritual:ultima_reuniao",{...nova,novo:true});
-  try{fetch("https://ritual-backend-production.up.railway.app/api/reunioes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(nova)});}catch{}
+  const nova={
+    nome:dados.nome, clinica:dados.clinica||"", tel:dados.tel||"",
+    whatsapp:dados.tel||"", email:dados.email||"",
+    data:dados.data, hora:dados.hora, dia:dados.dia,
+    score:dados.score||0, perda:dados.perda||0,
+    status:"agendada", origem:"lp", clinica_id:"wylvex",
+  };
+  try{
+    await sbInsert("reunioes", nova);
+    fetch(`${HUB}/api/confirm-lead`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({phone:((dados.tel||"").replace(/\D/g,"").startsWith("55")?"":"55")+(dados.tel||"").replace(/\D/g,""),nome:dados.nome,clinica:dados.clinica,data:dados.data,hora:dados.hora})
+    }).catch(()=>{});
+  }catch(e){console.error("salvarReuniao:",e.message);}
+  return nova;
 }
-
 /* ══════════════════════════════════════
    HELPERS
 ══════════════════════════════════════ */
@@ -230,7 +239,16 @@ function Agendador({leadData}){
   const [selHora,setSelHora]=useState(null);
   const [status,setStatus]=useState("idle");
 
-  useEffect(()=>{(async()=>{const b=await sGet("ritual:blocked")||{};setBlocked(b);})();},[]);
+  useEffect(()=>{(async()=>{
+    // Load booked slots from Supabase
+    try{
+      const r=await fetch(`${SB_URL}/rest/v1/reunioes?clinica_id=eq.wylvex&status=eq.agendada&select=data,hora`,
+        {headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
+      const rows=await r.json();
+      const b={};(rows||[]).forEach(x=>{if(x.data&&x.hora)b[`${x.data}:${x.hora}`]=true;});
+      setBlocked(b);
+    }catch{}
+  })();},[]);
 
   const horasParaDia=selDia?slots.filter(s=>s.dateStr===selDia.dateStr&&!blocked[s.key]):[]; 
 
@@ -238,7 +256,7 @@ function Agendador({leadData}){
     if(!selDia||!selHora||status==="loading")return;
     setStatus("loading");
     const nb={...blocked,[`${selDia.dateStr}:${selHora}`]:{nome:leadData.nome,at:new Date().toISOString()}};
-    setBlocked(nb);await sSet("ritual:blocked",nb);
+    setBlocked(nb);
     await salvarReuniao({data:selDia.dateStr,hora:selHora,dia:selDia.label,nome:leadData.nome,clinica:leadData.clinica,tel:leadData.whatsapp,score:leadData.score,perda:leadData.perda});
     setStatus("done");
   };
@@ -347,7 +365,7 @@ export default function App(){
   const [fase,setFase]=useState("hero"); // hero | form | resultado
   const [step,setStep]=useState(0); // etapas do form
   const [res,setRes]=useState({});
-  const [form,setForm]=useState({nome:"",clinica:"",whatsapp:""});
+  const [form,setForm]=useState({nome:"",clinica:"",whatsapp:"",email:""});
   const [loading,setLoading]=useState(false);
   const [savedLead,setSavedLead]=useState(null);
   const [scrollY,setScrollY]=useState(0);
@@ -398,7 +416,7 @@ export default function App(){
     setLoading(true);
     try{
       const dadosCompletos={...res,...form,nome:sanitize(form.nome),clinica:sanitize(form.clinica),
-        whatsapp:sanitize(form.whatsapp),perda};
+        whatsapp:sanitize(form.whatsapp),email:sanitize(form.email||""),perda};
       const lead=await salvarLead(dadosCompletos);
       setSavedLead({...dadosCompletos,...lead});
     }catch(e){console.error("submit:",e.message);}
@@ -507,7 +525,7 @@ export default function App(){
               {/* Badge */}
               <div style={{display:"inline-flex",alignItems:"center",gap:7,background:"rgba(201,149,108,.07)",border:"1px solid rgba(201,149,108,.18)",borderRadius:40,padding:"5px 16px",marginBottom:28,animation:"fadeUp .6s ease"}}>
                 <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c",animation:"pulse_d 1.8s infinite"}}/>
-                <span style={{fontSize:9,fontWeight:600,letterSpacing:3,color:"rgba(201,149,108,.8)",textTransform:"uppercase"}}>Sistema exclusivo para harmonização facial</span>
+                <span style={{fontSize:9,fontWeight:600,letterSpacing:3,color:"rgba(201,149,108,.8)",textTransform:"uppercase"}}>GESTÃO COM IA PARA CLÍNICAS DE PROCEDIMENTOS</span>
               </div>
 
               {/* H1 */}
@@ -525,7 +543,7 @@ export default function App(){
               {/* CTAs */}
               <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:12,justifyContent:"center",alignItems:"center",animation:"fadeUp .7s ease .3s both"}}>
                 <button className="cta" style={{fontSize:isMobile?14:16,padding:isMobile?"14px 28px":"18px 44px"}} onMouseEnter={()=>setCursorScale(2)} onMouseLeave={()=>setCursorScale(1)} onClick={entrarForm}>
-                  Calcular quanto estou perdendo
+                  Ver quanto minha clínica perde por mês
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
                 <div style={{fontSize:11,color:"rgba(255,255,255,.18)"}}>5 minutos · gratuito · sem compromisso</div>
@@ -596,13 +614,13 @@ export default function App(){
 
               <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr 1fr",gap:12,marginBottom:40}}>
                 {[
-                  {ic:"🧬",n:"01",t:"Jornada Individual",d:"Timeline visual por paciente. Procedimentos, fotos, protocolos. Tudo em 5 segundos."},
-                  {ic:"⏱️",n:"02",t:"Retorno Automático",d:"O sistema aprende o intervalo dela. Manda mensagem no momento exato. Sem você lembrar."},
-                  {ic:"📸",n:"03",t:"Antes/Depois Vinculado",d:"Foto vai direto pro protocolo. Não some no celular. Não vaza. Evolução automática."},
-                  {ic:"📋",n:"04",t:"Consentimento Auto",d:"Termo gerado por procedimento. Assina no tablet. Data, hora, IP. Tudo salvo."},
-                  {ic:"🗓️",n:"05",t:"Agenda Inteligente",d:"Lista de prioridade toda manhã. Buraco? Lista de espera age sozinha."},
-                  {ic:"💬",n:"06",t:"WhatsApp Central",d:"Um número. Todas as pacientes. Nenhuma no pessoal. Zero mensagem perdida."},
-                ].map((s,i)=>(
+                  {ic:"🧬",n:"01",t:"Jornada Individual",d:"Timeline visual por paciente — procedimentos, fotos antes/depois, aderência e retornos num único card."},
+                  {ic:"🤖",n:"02",t:"Ritual Intelligence",d:"IA detecta pacientes silenciosas, identifica insatisfação pelo padrão de resposta e age antes da perda."},
+                  {ic:"⏱️",n:"03",t:"Retorno Automático",d:"O sistema aprende o ciclo de cada paciente. Dispara via WhatsApp no momento exato. Sem você lembrar."},
+                  {ic:"🧠",n:"04",t:"Assistente Clínico IA",d:"Chat treinado no protocolo da sua clínica. Sugere ações, lembra de tudo, responde em segundos."},
+                  {ic:"🗓️",n:"05",t:"Agenda Inteligente",d:"Prioridade automática toda manhã. Briefing por consulta. Ritual Ready por atendimento — zero improviso."},
+                  {ic:"📊",n:"06",t:"Dashboard de Resultados",d:"ROI, taxa de retorno, perda estimada e benchmarks. Você sabe exatamente o que está funcionando."},
+                  ].map((s,i)=>(
                   <Reveal key={s.n} delay={i*60} direction="up">
                     <div style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)",borderRadius:14,padding:"22px 18px",height:"100%",transition:"all .3s",cursor:"default"}}
                       onMouseEnter={e=>{e.currentTarget.style.background="rgba(201,149,108,.04)";e.currentTarget.style.borderColor="rgba(201,149,108,.15)";e.currentTarget.style.transform="translateY(-3px)"}}
@@ -621,7 +639,7 @@ export default function App(){
                 <div style={{maxWidth:520,margin:"0 auto"}}>
                   <div style={{fontSize:9,color:"#c9956c",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10,textAlign:"center",display:"flex",alignItems:"center",gap:6,justifyContent:"center"}}>
                     <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c",animation:"pulse_d 2s infinite"}}/>
-                    Pré-visualização · Jornada da Paciente
+                    Ritual ao vivo · Como funciona na prática
                   </div>
                   <MiniDemo perda={4200} pacientes={23}/>
                 </div>
@@ -684,7 +702,7 @@ export default function App(){
           {/* FOOTER */}
           <footer style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:`16px ${isMobile?"18px":"clamp(20px,5vw,60px)"}`,display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:10,background:"#080407"}}>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:"#f0d9cc",fontStyle:"italic"}}>ritual</div>
-            <span style={{fontSize:9,color:"rgba(240,217,204,.12)"}}>© 2026 Ritual · O sistema que aprende o protocolo de cada paciente.</span>
+            <span style={{fontSize:9,color:"rgba(240,217,204,.12)"}}>© 2026 Ritual · Gestão com IA para clínicas de procedimentos estéticos.</span>
             <button className="cta" style={{padding:"6px 16px",fontSize:11}} onClick={entrarForm}>Diagnóstico →</button>
           </footer>
         </div>
@@ -781,12 +799,12 @@ export default function App(){
                 <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?20:26,fontWeight:700,marginBottom:6}}>{etapaAtual.titulo}</h2>
                 <p style={{fontSize:12,color:"rgba(240,217,204,.35)",marginBottom:20}}>{etapaAtual.sub}</p>
                 <div style={{display:"flex",flexDirection:"column",gap:11,marginBottom:18}}>
-                  {[["nome","Seu nome completo","text"],["clinica","Nome da clínica / consultório (opcional)","text"],["whatsapp","WhatsApp com DDD","numeric"]].map(([k,ph,mode])=>(
+                  {[["nome","Seu nome completo","text"],["clinica","Nome da clínica / consultório (opcional)","text"],["whatsapp","WhatsApp com DDD","numeric"],["email","E-mail (opcional)","email"]].map(([k,ph,mode])=>(
                     <input key={k} className="inp" placeholder={ph} inputMode={mode} maxLength={k==="whatsapp"?20:80} autoComplete="off" value={form[k]} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}/>
                   ))}
                 </div>
                 <button className="cta" style={{width:"100%"}} disabled={!form.nome.trim()||form.whatsapp.replace(/\D/g,"").length<10||loading} onClick={handleSubmit}>
-                  {loading?"Calculando diagnóstico...":"Ver diagnóstico e agendar demo →"}
+                  {loading?"Calculando diagnóstico...":"Ver diagnóstico e agendar call →"}
                 </button>
                 <p style={{fontSize:10,color:"rgba(240,217,204,.15)",textAlign:"center",marginTop:10}}>Zero spam. Só o diagnóstico e a demonstração.</p>
               </div>)}
@@ -850,12 +868,7 @@ export default function App(){
               {/* Col direita — agendar */}
               <div style={{animation:"fadeUp .6s ease .2s both"}}>
                 <div style={{fontSize:9,color:"rgba(240,217,204,.35)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Agende sua demonstração</div>
-                <a href={"https://wa.me/5547991389225?text="+encodeURIComponent("Olá! Fiz o diagnóstico no site. Clínica: "+(savedLead?.clinica||"")+" | Perda: R$"+(savedLead?.perda||0).toLocaleString("pt-BR")+"/mês")}
-                  target="_blank" rel="noreferrer"
-                  style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"linear-gradient(135deg,#25d366,#128c7e)",borderRadius:12,padding:"14px",marginBottom:16,textDecoration:"none",color:"white",fontWeight:700,fontSize:14}}>
-                  <span>📱</span> Falar no WhatsApp agora
-                </a>
-                <Agendador leadData={savedLead}/>
+                                <Agendador leadData={savedLead}/>
                 <div style={{marginTop:12,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)",borderRadius:10,padding:"12px 14px"}}>
                   <div style={{fontSize:11,color:"rgba(240,217,204,.4)",lineHeight:1.65}}>
                     Na demonstração ao vivo você vê o sistema com os dados da sua clínica — pacientes, protocolos, agenda e retornos automáticos configurados.
