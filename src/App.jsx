@@ -62,10 +62,16 @@ const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const MESES=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 function gerarSlots(){
   const slots=[];const now=new Date();
-  for(let d=1;d<=21;d++){
+  const horaBRT=(now.getUTCHours()-3+24)%24;
+  const minBRT=now.getUTCMinutes();
+  const HORAS=["09:00","10:00","11:00","13:00","14:00","15:00","16:00"];
+  for(let d=0;d<=21;d++){
     const dt=new Date(now);dt.setDate(now.getDate()+d);
     if(dt.getDay()===0||dt.getDay()===6)continue;
-    ["09:00","10:00","11:00","13:00","14:00","15:00","16:00"].forEach(h=>{
+    HORAS.forEach(h=>{
+      const [hh,mm]=h.split(":").map(Number);
+      // For today, only show hours at least 1h from now
+      if(d===0&&(hh<horaBRT+1||(hh===horaBRT+1&&mm<=minBRT)))return;
       slots.push({dt,h,key:`${dt.toISOString().slice(0,10)}:${h}`,
         label:`${DIAS[dt.getDay()]}, ${dt.getDate()} de ${MESES[dt.getMonth()]}`,
         dateStr:dt.toISOString().slice(0,10)});
@@ -250,7 +256,7 @@ function Agendador({leadData}){
     <div style={{background:"rgba(201,149,108,.04)",border:"1px solid rgba(201,149,108,.14)",borderRadius:14,padding:"20px 18px"}}>
       <div style={{fontSize:9,color:"#c9956c",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:16,display:"flex",alignItems:"center",gap:6}}>
         <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c"}}/>
-        Agende sua demonstração gratuita
+        Agende sua call gratuita
       </div>
       {/* Dias */}
       <div style={{fontSize:9,color:"rgba(240,217,204,.3)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Escolha o dia</div>
@@ -284,7 +290,7 @@ function Agendador({leadData}){
             ✨ {selDia.label} · {selHora} · 30 minutos
           </div>
           <button disabled={status==="loading"} onClick={confirmar} style={{background:"linear-gradient(135deg,#c9956c,#b8845b)",color:"white",border:"none",borderRadius:10,padding:"14px 20px",fontSize:14,fontWeight:700,cursor:"pointer",width:"100%",fontFamily:"'Jost',sans-serif",boxShadow:"0 8px 24px rgba(201,149,108,.25)",transition:"all .2s"}}>
-            {status==="loading"?"Confirmando...":"Confirmar demonstração gratuita →"}
+            {status==="loading"?"Confirmando...":"Confirmar confirmar call →"}
           </button>
           <div style={{fontSize:10,color:"rgba(255,255,255,.2)",textAlign:"center",marginTop:8}}>Confirmação no WhatsApp em instantes</div>
         </div>
