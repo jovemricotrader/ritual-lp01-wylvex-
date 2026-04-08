@@ -50,6 +50,7 @@ async function salvarReuniao(dados){
   };
   try{
     await sbInsert("reunioes", nova);
+    fbTrack("Schedule", {content_name:"Call Ritual",currency:"BRL",value:nova.perda||0,content_category:"call_agendada",num_items:1});
     fetch(`${HUB}/api/confirm-lead`,{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({phone:((dados.tel||"").replace(/\D/g,"").startsWith("55")?"":"55")+(dados.tel||"").replace(/\D/g,""),nome:dados.nome,clinica:dados.clinica,data:dados.data,hora:dados.hora})
