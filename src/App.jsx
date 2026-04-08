@@ -35,14 +35,7 @@ async function salvarLead(dados) {
   try {
     await sbInsert("leads", row);
     fbTrack("Lead", { content_name: "Diagnóstico Ritual", currency: "BRL", value: row.perda||0 });
-    // Notify Hub
-    fetch(`${HUB}/api/confirm-lead`, {
-      method: "POST", headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        phone: ((dados.whatsapp||"").replace(/\D/g,"").startsWith("55")?"":"55")+(dados.whatsapp||"").replace(/\D/g,""),
-        nome: dados.nome, clinica: dados.clinica, perda: row.perda, score: row.score
-      })
-    }).catch(()=>{});
+    // Mensagem enviada só ao confirmar agendamento (salvarReuniao)
   } catch(e) { console.error("salvarLead:", e.message); }
   return row;
 }
