@@ -520,7 +520,7 @@ export default function App(){
               {/* Badge */}
               <div style={{display:"inline-flex",alignItems:"center",gap:7,background:"rgba(201,149,108,.07)",border:"1px solid rgba(201,149,108,.18)",borderRadius:40,padding:"5px 16px",marginBottom:28,animation:"fadeUp .6s ease"}}>
                 <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c",animation:"pulse_d 1.8s infinite"}}/>
-                <span style={{fontSize:9,fontWeight:600,letterSpacing:3,color:"rgba(201,149,108,.8)",textTransform:"uppercase"}}>GESTÃO COM IA PARA CLÍNICAS DE PROCEDIMENTOS</span>
+                <span style={{fontSize:9,fontWeight:600,letterSpacing:3,color:"rgba(201,149,108,.8)",textTransform:"uppercase"}}>GESTÃO INTELIGENTE PARA CLÍNICAS DE PROCEDIMENTOS</span>
               </div>
 
               {/* H1 */}
@@ -610,9 +610,9 @@ export default function App(){
               <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr 1fr",gap:12,marginBottom:40}}>
                 {[
                   {ic:"🧬",n:"01",t:"Jornada Individual",d:"Timeline visual por paciente — procedimentos, fotos antes/depois, aderência e retornos num único card."},
-                  {ic:"🤖",n:"02",t:"Ritual Intelligence",d:"IA detecta pacientes silenciosas, identifica insatisfação pelo padrão de resposta e age antes da perda."},
+                  {ic:"🤖",n:"02",t:"Ritual Intelligence",d:"Monitora cada paciente em silêncio, detecta sinais de desengajamento e age automaticamente antes da perda."},
                   {ic:"⏱️",n:"03",t:"Retorno Automático",d:"O sistema aprende o ciclo de cada paciente. Dispara via WhatsApp no momento exato. Sem você lembrar."},
-                  {ic:"🧠",n:"04",t:"Assistente Clínico IA",d:"Chat treinado no protocolo da sua clínica. Sugere ações, lembra de tudo, responde em segundos."},
+                  {ic:"🧠",n:"04",t:"Assistente Ritual",d:"Conhece cada paciente da clínica, sugere ações com base no histórico e responde como parte da sua equipe."},
                   {ic:"🗓️",n:"05",t:"Agenda Inteligente",d:"Prioridade automática toda manhã. Briefing por consulta. Ritual Ready por atendimento — zero improviso."},
                   {ic:"📊",n:"06",t:"Dashboard de Resultados",d:"ROI, taxa de retorno, perda estimada e benchmarks. Você sabe exatamente o que está funcionando."},
                   ].map((s,i)=>(
@@ -697,7 +697,7 @@ export default function App(){
           {/* FOOTER */}
           <footer style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:`16px ${isMobile?"18px":"clamp(20px,5vw,60px)"}`,display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:10,background:"#080407"}}>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:"#f0d9cc",fontStyle:"italic"}}>ritual</div>
-            <span style={{fontSize:9,color:"rgba(240,217,204,.12)"}}>© 2026 Ritual · Gestão com IA para clínicas de procedimentos estéticos.</span>
+            <span style={{fontSize:9,color:"rgba(240,217,204,.12)"}}>© 2026 Ritual · Gestão inteligente para clínicas de procedimentos estéticos.</span>
             <button className="cta" style={{padding:"6px 16px",fontSize:11}} onClick={entrarForm}>Diagnóstico →</button>
           </footer>
         </div>
