@@ -71,16 +71,17 @@ const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const MESES=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 function gerarSlots(){
   const slots=[];const now=new Date();
-  const horaBRT=(now.getUTCHours()-3+24)%24;
-  const minBRT=now.getUTCMinutes();
+  // Use local time (browser is already in user's timezone)
+  const nowMin=now.getHours()*60+now.getMinutes();
   const HORAS=["09:00","10:00","11:00","13:00","14:00","15:00","16:00"];
   for(let d=0;d<=21;d++){
     const dt=new Date(now);dt.setDate(now.getDate()+d);
     if(dt.getDay()===0||dt.getDay()===6)continue;
     HORAS.forEach(h=>{
       const [hh,mm]=h.split(":").map(Number);
-      // For today, only show hours at least 1h from now
-      if(d===0&&(hh<horaBRT+1||(hh===horaBRT+1&&mm<=minBRT)))return;
+      const slotMin=hh*60+mm;
+      // For today, block any slot within 90min from now
+      if(d===0&&slotMin<=nowMin+90)return;
       slots.push({dt,h,key:`${dt.toISOString().slice(0,10)}:${h}`,
         label:`${DIAS[dt.getDay()]}, ${dt.getDate()} de ${MESES[dt.getMonth()]}`,
         dateStr:dt.toISOString().slice(0,10)});
