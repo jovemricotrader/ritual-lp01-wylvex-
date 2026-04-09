@@ -64,21 +64,32 @@ async function salvarReuniao(dados){
 const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const MESES=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 function gerarSlots(){
-  const slots=[];const now=new Date();
-  // Use local time (browser is already in user's timezone)
-  const nowMin=now.getHours()*60+now.getMinutes();
+  // Usa horário local do browser (Brasil = UTC-3)
+  // Garante que dateStr e bloqueio de hora passada usam o mesmo timezone
+  const slots=[];
+  const now=new Date();
+  // Local date string sem dependência de UTC
+  const localDateStr=(d)=>{
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,"0");
+    const day=String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  };
+  const nowMin=now.getHours()*60+now.getMinutes(); // hora local
   const HORAS=["09:00","10:00","11:00","13:00","14:00","15:00","16:00"];
   for(let d=0;d<=21;d++){
-    const dt=new Date(now);dt.setDate(now.getDate()+d);
+    const dt=new Date(now.getFullYear(),now.getMonth(),now.getDate()+d); // midnight local
     if(dt.getDay()===0||dt.getDay()===6)continue;
+    const dateStr=localDateStr(dt);
     HORAS.forEach(h=>{
       const [hh,mm]=h.split(":").map(Number);
       const slotMin=hh*60+mm;
-      // For today, block any slot within 90min from now
+      // Bloqueia slots do dia atual que já passaram + 90min de buffer
       if(d===0&&slotMin<=nowMin+90)return;
-      slots.push({dt,h,key:`${dt.toISOString().slice(0,10)}:${h}`,
+      slots.push({dt,h,
+        key:`${dateStr}:${h}`,
         label:`${DIAS[dt.getDay()]}, ${dt.getDate()} de ${MESES[dt.getMonth()]}`,
-        dateStr:dt.toISOString().slice(0,10)});
+        dateStr});
     });
   }
   return slots;
@@ -226,10 +237,11 @@ function MiniDemo({perda,pacientes}){
 ══════════════════════════════════════ */
 function Agendador({leadData}){
   const [blocked,setBlocked]=useState({});
-  const [slots]=useState(gerarSlots);
-  const [diasUniq]=useState(()=>{
+  // Recalcula slots a cada vez que o componente é montado (sem cache stale)
+  const slots=gerarSlots();
+  const diasUniq=(()=>{
     const seen=new Set();return slots.filter(s=>{if(seen.has(s.dateStr))return false;seen.add(s.dateStr);return true;});
-  });
+  })();
   const [selDia,setSelDia]=useState(null);
   const [selHora,setSelHora]=useState(null);
   const [status,setStatus]=useState("idle");
