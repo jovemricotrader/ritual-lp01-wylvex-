@@ -266,7 +266,7 @@ function Agendador({leadData}){
   );
 
   return(
-    <div style={{background:"rgba(201,149,108,.04)",border:"1px solid rgba(201,149,108,.14)",borderRadius:14,padding:"20px 18px"}}>
+    <div className="oracle-border" style={{borderRadius:14,padding:"20px 18px",background:"#0A0A0B"}}>
       <div style={{fontSize:9,color:"#c9956c",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:16,display:"flex",alignItems:"center",gap:6}}>
         <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c"}}/>
         Agende sua call gratuita
@@ -303,7 +303,7 @@ function Agendador({leadData}){
             ✨ {selDia.label} · {selHora} · 30 minutos
           </div>
           <button disabled={status==="loading"} onClick={confirmar} style={{background:"linear-gradient(135deg,#c9956c,#b8845b)",color:"white",border:"none",borderRadius:10,padding:"14px 20px",fontSize:14,fontWeight:700,cursor:"pointer",width:"100%",fontFamily:"'Jost',sans-serif",boxShadow:"0 8px 24px rgba(201,149,108,.25)",transition:"all .2s"}}>
-            {status==="loading"?"Confirmando...":"Confirmar confirmar call →"}
+            {status==="loading"?"Confirmando...":"Confirmar minha call →"}
           </button>
           <div style={{fontSize:10,color:"rgba(255,255,255,.2)",textAlign:"center",marginTop:8}}>Confirmação no WhatsApp em instantes</div>
         </div>
@@ -377,7 +377,7 @@ export default function App(){
     window.addEventListener("scroll",sc,{passive:true});
     window.addEventListener("mousemove",mm);
     // Fonts
-    const F="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&family=Jost:wght@300;400;500;600;700&family=Syne:wght@700;800;900&display=swap";
+    const F="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&family=Jost:wght@300;400;500;600;700&family=Syne:wght@700;800;900&family=Unbounded:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap";
     if(!document.querySelector(`link[href="${F}"]`)){const l=document.createElement("link");l.rel="stylesheet";l.href=F;l.media="print";l.onload=()=>{l.media="all";};document.head.appendChild(l);}
     return()=>{window.removeEventListener("resize",ck);window.removeEventListener("scroll",sc);window.removeEventListener("mousemove",mm);};
   },[]);
@@ -425,7 +425,7 @@ export default function App(){
   };
 
   return(
-    <div ref={topo} style={{fontFamily:"'Jost',sans-serif",background:"#080407",color:"#e8d8cc",minHeight:"100vh",overflowX:"hidden",cursor:isMobile?"auto":"none"}}>
+    <div ref={topo} style={{fontFamily:"'Jost',sans-serif",background:"#0A0A0B",color:"#e8d8cc",minHeight:"100vh",overflowX:"hidden",cursor:isMobile?"auto":"none"}}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         html{scroll-behavior:smooth}
@@ -483,6 +483,19 @@ export default function App(){
 
         /* GRAIN */
         .grain::after{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:.022;pointer-events:none;z-index:9999;}
+
+        /* ── Stitch Obsidian tokens ── */
+        :root{--orange:#FF5C1A;--gold:#D4AF37;--cream:#f0d9cc;--bg:#0A0A0B;--s1:#131314;--s2:#1c1b1c;}
+        .shimmer-gold{background:linear-gradient(90deg,#c9956c 0%,#D4AF37 20%,#FFE088 50%,#D4AF37 80%,#c9956c 100%);background-size:300% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer_g 4s linear infinite}
+        .glass-card{background:rgba(28,27,28,.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.06)}
+        .oracle-border{border:1px solid transparent;background:linear-gradient(#0A0A0B,#0A0A0B) padding-box,linear-gradient(135deg,#FF5C1A,#D4AF37) border-box}
+        .cta-orange{background:linear-gradient(135deg,#FF5C1A 0%,#da4600 100%)!important;box-shadow:0 8px 28px rgba(255,92,26,.28),inset 0 1px 0 rgba(255,255,255,.15)!important}
+        .cta-orange:hover{box-shadow:0 18px 48px rgba(255,92,26,.45),inset 0 1px 0 rgba(255,255,255,.18)!important}
+        @keyframes orb-pulse{0%,100%{opacity:.12}50%{opacity:.22}}
+        .orb-orange{background:radial-gradient(circle,rgba(255,92,26,.15) 0%,transparent 65%);filter:blur(60px);animation:orb-pulse 8s ease-in-out infinite}
+        .orb-gold{background:radial-gradient(circle,rgba(212,175,55,.1) 0%,transparent 65%);filter:blur(70px);animation:orb-pulse 10s ease-in-out infinite;animation-delay:3s}
+        /* Grid background */
+        .grid-bg-lp{background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.02) 1px,transparent 0);background-size:48px 48px}
       `}</style>
 
       {/* CURSOR CUSTOM */}
@@ -493,10 +506,10 @@ export default function App(){
 
       {/* NAV */}
       <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:500,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:`0 ${isMobile?"18px":"clamp(24px,6vw,64px)"}`,background:scrollY>40?"rgba(8,4,7,.94)":"transparent",backdropFilter:scrollY>40?"blur(24px)":"none",borderBottom:scrollY>40?"1px solid rgba(201,149,108,.07)":"none",transition:"all .4s"}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:"#f0d9cc",letterSpacing:3,fontStyle:"italic"}}>ritual</div>
+        <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:14,fontWeight:900,color:"#F8F9FA",letterSpacing:"-0.5px"}}>RITUAL<span style={{color:"#FF5C1A",marginLeft:4}}>·</span></div>
         {fase==="hero"&&(
-          <button className="cta" style={{padding:"7px 20px",fontSize:12}} onMouseEnter={()=>setCursorScale(2)} onMouseLeave={()=>setCursorScale(1)} onClick={entrarForm}>
-            Ver diagnóstico →
+          <button className="cta cta-orange" style={{padding:"7px 20px",fontSize:11,borderRadius:50,letterSpacing:".5px",fontWeight:700}} onMouseEnter={()=>setCursorScale(2)} onMouseLeave={()=>setCursorScale(1)} onClick={entrarForm}>
+            Diagnóstico Gratuito →
           </button>
         )}
       </nav>
@@ -508,8 +521,9 @@ export default function App(){
           <section style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:`clamp(90px,12vh,120px) ${isMobile?"20px":"clamp(24px,8vw,100px)"} 80px`,textAlign:"center",position:"relative",overflow:"hidden"}}>
             <ParticleCanvas/>
             {/* Orbs */}
-            <div style={{position:"absolute",top:"8%",left:"12%",width:500,height:500,background:"radial-gradient(circle,rgba(201,149,108,.08) 0%,transparent 65%)",filter:"blur(60px)",animation:"orb1 12s ease-in-out infinite",pointerEvents:"none"}}/>
-            <div style={{position:"absolute",bottom:"8%",right:"10%",width:420,height:420,background:"radial-gradient(circle,rgba(201,149,108,.06) 0%,transparent 65%)",filter:"blur(70px)",animation:"orb2 15s ease-in-out infinite",animationDelay:"4s",pointerEvents:"none"}}/>
+            <div className="orb-orange" style={{position:"absolute",top:"8%",left:"12%",width:500,height:500,pointerEvents:"none",animation:"orb1 12s ease-in-out infinite"}}/>
+            <div className="orb-gold" style={{position:"absolute",bottom:"8%",right:"10%",width:420,height:420,pointerEvents:"none",animation:"orb2 15s ease-in-out infinite",animationDelay:"4s"}}/>
+            <div style={{position:"absolute",top:"40%",right:"25%",width:280,height:280,background:"radial-gradient(circle,rgba(212,175,55,.06) 0%,transparent 65%)",filter:"blur(50px)",pointerEvents:"none"}}/>
             {/* Thin lines */}
             <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",opacity:.08}} viewBox="0 0 1440 900" preserveAspectRatio="none">
               <line x1="0" y1="450" x2="1440" y2="450" stroke="#c9956c" strokeWidth=".5" strokeDasharray="4 12"/>
@@ -518,27 +532,28 @@ export default function App(){
 
             <div style={{position:"relative",zIndex:1,maxWidth:900,width:"100%"}}>
               {/* Badge */}
-              <div style={{display:"inline-flex",alignItems:"center",gap:7,background:"rgba(201,149,108,.07)",border:"1px solid rgba(201,149,108,.18)",borderRadius:40,padding:"5px 16px",marginBottom:28,animation:"fadeUp .6s ease"}}>
-                <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c",animation:"pulse_d 1.8s infinite"}}/>
-                <span style={{fontSize:9,fontWeight:600,letterSpacing:3,color:"rgba(201,149,108,.8)",textTransform:"uppercase"}}>GESTÃO INTELIGENTE PARA CLÍNICAS DE PROCEDIMENTOS</span>
+              {/* Badge Monolith */}
+              <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(255,92,26,.05)",border:"1px solid rgba(255,92,26,.15)",borderRadius:40,padding:"5px 18px",marginBottom:28,animation:"fadeUp .6s ease"}}>
+                <div style={{width:5,height:5,borderRadius:"50%",background:"#FF5C1A",animation:"pulse_d 1.8s infinite"}}/>
+                <span style={{fontSize:8,fontWeight:700,letterSpacing:3,color:"rgba(255,92,26,.8)",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Edição Monolith · Gestão para Clínicas de Elite</span>
               </div>
 
               {/* H1 */}
-              <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?"clamp(38px,11vw,60px)":"clamp(52px,7.5vw,100px)",fontWeight:700,lineHeight:.86,letterSpacing:-2,marginBottom:24,animation:"fadeUp .7s ease .1s both"}}>
-                <span style={{display:"block",WebkitTextStroke:`${isMobile?"1px":"1.5px"} rgba(240,217,204,.1)`,color:"transparent"}}>Ela adorou o resultado.</span>
-                <span style={{display:"block",WebkitTextStroke:`${isMobile?"1px":"1.5px"} rgba(240,217,204,.1)`,color:"transparent"}}>Sumiu mesmo assim.</span>
-                <span className="shimmer-g" style={{display:"block",fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?"clamp(38px,11vw,60px)":"clamp(52px,7.5vw,100px)",fontWeight:700,fontStyle:"italic",lineHeight:.9,letterSpacing:-2}}>Seu sistema não sabia agir.</span>
+              <h1 style={{fontFamily:"'Unbounded',sans-serif",fontSize:isMobile?"clamp(30px,9.5vw,52px)":"clamp(42px,6.5vw,88px)",fontWeight:900,lineHeight:.88,letterSpacing:isMobile?"-1px":"-2.5px",marginBottom:24,animation:"fadeUp .7s ease .1s both",textTransform:"uppercase"}}>
+                <span style={{display:"block",color:"rgba(248,249,250,.08)",WebkitTextStroke:(isMobile?"1px":"1.5px")+" rgba(248,249,250,.12)"}}>Pare de perder</span>
+                <span style={{display:"block",color:"rgba(248,249,250,.08)",WebkitTextStroke:(isMobile?"1px":"1.5px")+" rgba(248,249,250,.12)"}}>pacientes para</span>
+                <span className="shimmer-gold" style={{display:"block",fontFamily:"'Unbounded',sans-serif",fontSize:isMobile?"clamp(30px,9.5vw,52px)":"clamp(42px,6.5vw,88px)",fontWeight:900,lineHeight:.88,letterSpacing:isMobile?"-1px":"-2.5px"}}>o silêncio.</span>
               </h1>
 
               {/* Sub */}
-              <p style={{fontSize:isMobile?14:17,color:"rgba(240,217,204,.35)",lineHeight:1.85,maxWidth:560,margin:"0 auto 36px",fontWeight:300,animation:"fadeUp .7s ease .2s both"}}>
-                O Ritual aprende o ciclo de cada paciente e age automaticamente — antes que ela vá pra concorrência. Retorno, consentimento, protocolo e agenda numa só plataforma.
+              <p style={{fontSize:isMobile?14:17,color:"rgba(240,217,204,.38)",lineHeight:1.85,maxWidth:540,margin:"0 auto 36px",fontWeight:300,animation:"fadeUp .7s ease .2s both",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+                A infraestrutura de elite para consultórios que buscam o próximo nível de autoridade e conversão. Retorno automático, protocolo e agenda numa só plataforma.
               </p>
 
               {/* CTAs */}
               <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:12,justifyContent:"center",alignItems:"center",animation:"fadeUp .7s ease .3s both"}}>
-                <button className="cta" style={{fontSize:isMobile?14:16,padding:isMobile?"14px 28px":"18px 44px"}} onMouseEnter={()=>setCursorScale(2)} onMouseLeave={()=>setCursorScale(1)} onClick={entrarForm}>
-                  Ver quanto minha clínica perde por mês
+                <button className="cta cta-orange" style={{fontSize:isMobile?14:16,padding:isMobile?"14px 28px":"18px 48px",borderRadius:50,fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,letterSpacing:".3px"}} onMouseEnter={()=>setCursorScale(2)} onMouseLeave={()=>setCursorScale(1)} onClick={entrarForm}>
+                  Iniciar Diagnóstico Gratuito
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
                 <div style={{fontSize:11,color:"rgba(255,255,255,.18)"}}>5 minutos · gratuito · sem compromisso</div>
@@ -563,29 +578,29 @@ export default function App(){
           </section>
 
           {/* S2 — O PROBLEMA */}
-          <section style={{background:"#f5ede8",padding:`clamp(80px,10vh,120px) ${isMobile?"20px":"clamp(20px,8vw,100px)"}`,position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(60px,14vw,200px)",fontWeight:300,letterSpacing:-4,color:"rgba(0,0,0,.04)",whiteSpace:"nowrap",top:"50%",left:-20,transform:"translateY(-50%)",userSelect:"none",pointerEvents:"none",fontStyle:"italic"}}>protocolo</div>
+          <section style={{background:"#0e0a12",padding:`clamp(80px,10vh,120px) ${isMobile?"20px":"clamp(20px,8vw,100px)"}`,position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",fontFamily:"'Unbounded',sans-serif",fontSize:"clamp(50px,12vw,180px)",fontWeight:900,letterSpacing:-4,color:"rgba(255,255,255,.018)",whiteSpace:"nowrap",top:"50%",left:-20,transform:"translateY(-50%)",userSelect:"none",pointerEvents:"none",textTransform:"uppercase"}}>protocolo</div>
             <div style={{maxWidth:960,margin:"0 auto",position:"relative",zIndex:1}}>
               <Reveal>
                 <div style={{fontSize:9,letterSpacing:4,color:"#c9956c",fontWeight:700,textTransform:"uppercase",marginBottom:16}}>O problema que ninguém resolveu</div>
-                <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?"clamp(28px,8vw,52px)":"clamp(36px,5vw,72px)",fontWeight:700,lineHeight:.9,letterSpacing:-1,color:"#1a0c0a",marginBottom:28}}>
+                <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?"clamp(28px,8vw,52px)":"clamp(36px,5vw,72px)",fontWeight:700,lineHeight:.9,letterSpacing:-1,color:"#f0d9cc",marginBottom:28}}>
                   iClinic registra.<br/>Clinicorp registra.<br/><em style={{color:"#c9956c",fontStyle:"italic"}}>Nenhum aprende.</em>
                 </h2>
               </Reveal>
               <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:24,marginTop:16}}>
                 <Reveal delay={100}>
-                  <p style={{fontSize:isMobile?15:16,color:"rgba(26,12,10,.5)",lineHeight:1.9,borderLeft:"2.5px solid #c9956c",paddingLeft:20,fontWeight:300}}>
+                  <p style={{fontSize:isMobile?15:16,color:"rgba(240,217,204,.45)",lineHeight:1.9,borderLeft:"2.5px solid #c9956c",paddingLeft:20,fontWeight:300}}>
                     Nenhum sistema sabe que toxina tem retoque em 14 dias e manutenção em 5 meses.<br/><br/>
                     Nenhum sabe que <em>aquela paciente específica</em> some após o segundo procedimento.<br/><br/>
-                    <strong style={{color:"rgba(26,12,10,.75)",fontWeight:600}}>Eles registram. O Ritual aprende e age.</strong>
+                    <strong style={{color:"rgba(240,217,204,.8)",fontWeight:600}}>Eles registram. O Ritual aprende e age.</strong>
                   </p>
                 </Reveal>
                 <div style={{display:"flex",flexDirection:"column",gap:9}}>
                   {[["❌","Sabe quando a toxina vence","Tem o dado. Não age no momento certo."],["❌","Aprende o ciclo da paciente","Cada uma fica igual no sistema. Zero personalização."],["❌","Gera o consentimento certo","Você procura o papel. Assina manual. Perde."],["❌","Preenche buraco de agenda","Tem lista de espera. Ninguém controla."]].map(([ic,t,d],i)=>(
                     <Reveal key={i} delay={i*80} direction="right">
-                      <div style={{background:"white",borderRadius:10,padding:"13px 15px",border:"1px solid rgba(0,0,0,.05)",boxShadow:"0 3px 16px rgba(0,0,0,.04)"}}>
-                        <div style={{fontWeight:700,fontSize:12,color:"#1a0c0a",marginBottom:3}}>{ic} {t}</div>
-                        <div style={{fontSize:11,color:"rgba(26,12,10,.45)",lineHeight:1.5}}>{d}</div>
+                      <div style={{background:"rgba(30,20,25,.8)",borderRadius:10,padding:"13px 15px",border:"1px solid rgba(201,149,108,.1)",backdropFilter:"blur(10px)"}}>
+                        <div style={{fontWeight:700,fontSize:12,color:"#f0d9cc",marginBottom:3}}>{ic} {t}</div>
+                        <div style={{fontSize:11,color:"rgba(240,217,204,.4)",lineHeight:1.5}}>{d}</div>
                       </div>
                     </Reveal>
                   ))}
@@ -595,7 +610,7 @@ export default function App(){
           </section>
 
           {/* S3 — O QUE FAZ */}
-          <section style={{background:"#080407",padding:`clamp(80px,10vh,120px) ${isMobile?"20px":"clamp(20px,8vw,100px)"}`,position:"relative",overflow:"hidden"}}>
+          <section style={{background:"#0A0A0B",padding:`clamp(80px,10vh,120px) ${isMobile?"20px":"clamp(20px,8vw,100px)"}`,position:"relative",overflow:"hidden"}}>
             {[500,800].map((sz,i)=>(<div key={sz} style={{position:"absolute",width:sz,height:sz,borderRadius:"50%",border:"1px solid rgba(201,149,108,.04)",top:"50%",left:"50%",transform:"translate(-50%,-50%)",animation:`float ${6+i*2}s ease-in-out infinite`,pointerEvents:"none"}}/>))}
             <div style={{maxWidth:960,margin:"0 auto",position:"relative",zIndex:1}}>
               <Reveal>
@@ -618,8 +633,8 @@ export default function App(){
                   ].map((s,i)=>(
                   <Reveal key={s.n} delay={i*60} direction="up">
                     <div style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)",borderRadius:14,padding:"22px 18px",height:"100%",transition:"all .3s",cursor:"default"}}
-                      onMouseEnter={e=>{e.currentTarget.style.background="rgba(201,149,108,.04)";e.currentTarget.style.borderColor="rgba(201,149,108,.15)";e.currentTarget.style.transform="translateY(-3px)"}}
-                      onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.02)";e.currentTarget.style.borderColor="rgba(255,255,255,.05)";e.currentTarget.style.transform="translateY(0)"}}>
+                      onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,92,26,.04)";e.currentTarget.style.borderColor="rgba(255,92,26,.2)";e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 12px 32px rgba(255,92,26,.1)"}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.02)";e.currentTarget.style.borderColor="rgba(255,255,255,.05)";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none"}}>
                       <div style={{fontSize:9,color:"rgba(201,149,108,.3)",fontWeight:700,letterSpacing:2,marginBottom:8}}>{s.n}</div>
                       <div style={{fontSize:20,marginBottom:8}}>{s.ic}</div>
                       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,color:"#f0d9cc",marginBottom:6,lineHeight:1.1}}>{s.t}</div>
@@ -675,7 +690,7 @@ export default function App(){
           </section>
 
           {/* S5 — CTA FINAL */}
-          <section style={{minHeight:"70vh",display:"flex",alignItems:"center",justifyContent:"center",padding:`clamp(80px,10vh,110px) ${isMobile?"20px":"clamp(20px,8vw,100px)"}`,background:"#080407",position:"relative",overflow:"hidden",textAlign:"center"}}>
+          <section style={{minHeight:"70vh",display:"flex",alignItems:"center",justifyContent:"center",padding:`clamp(80px,10vh,110px) ${isMobile?"20px":"clamp(20px,8vw,100px)"}`,background:"#0A0A0B",position:"relative",overflow:"hidden",textAlign:"center"}}>
             <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"min(600px,100vw)",height:"min(600px,100vw)",background:"radial-gradient(circle,rgba(201,149,108,.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
             <Reveal direction="scale">
               <div style={{position:"relative",zIndex:1,maxWidth:680}}>
@@ -686,7 +701,7 @@ export default function App(){
                 </h2>
                 <p style={{fontSize:isMobile?13:16,color:"rgba(240,217,204,.35)",lineHeight:1.8,maxWidth:480,margin:"0 auto 28px",fontWeight:300}}>5 perguntas. Calculamos a perda real. Mostramos a demo com sua clínica. Você agenda a call se quiser.
                 </p>
-                <button className="cta" style={{fontSize:isMobile?14:16,padding:isMobile?"14px 28px":"18px 48px"}} onMouseEnter={()=>setCursorScale(2)} onMouseLeave={()=>setCursorScale(1)} onClick={entrarForm}>
+                <button className="cta cta-orange" style={{fontSize:isMobile?14:16,padding:isMobile?"14px 28px":"18px 52px",borderRadius:50,fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700}} onMouseEnter={()=>setCursorScale(2)} onMouseLeave={()=>setCursorScale(1)} onClick={entrarForm}>
                   Ver meu diagnóstico gratuito →
                 </button>
                 <div style={{marginTop:14,fontSize:11,color:"rgba(255,255,255,.15)"}}>Sem compromisso · Demo ao vivo na call</div>
@@ -695,8 +710,8 @@ export default function App(){
           </section>
 
           {/* FOOTER */}
-          <footer style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:`16px ${isMobile?"18px":"clamp(20px,5vw,60px)"}`,display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:10,background:"#080407"}}>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:"#f0d9cc",fontStyle:"italic"}}>ritual</div>
+          <footer style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:`16px ${isMobile?"18px":"clamp(20px,5vw,60px)"}`,display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:10,background:"#0A0A0B"}}>
+            <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:13,fontWeight:900,color:"#F8F9FA",letterSpacing:"-0.5px"}}>RITUAL<span style={{color:"#FF5C1A",marginLeft:4}}>·</span></div>
             <span style={{fontSize:9,color:"rgba(240,217,204,.12)"}}>© 2026 Ritual · Gestão inteligente para clínicas de procedimentos estéticos.</span>
             <button className="cta" style={{padding:"6px 16px",fontSize:11}} onClick={entrarForm}>Diagnóstico →</button>
           </footer>
@@ -705,7 +720,7 @@ export default function App(){
 
       {/* ════ FORM — DIAGNÓSTICO ════ */}
       {fase==="form"&&(
-        <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:`80px ${isMobile?"16px":"24px"}`,position:"relative",background:"#080407"}}>
+        <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:`80px ${isMobile?"16px":"24px"}`,position:"relative",background:"#0A0A0B"}}>
           <ParticleCanvas/>
           <div style={{width:"100%",maxWidth:580,position:"relative",zIndex:1}}>
             {/* Progress */}
@@ -813,7 +828,7 @@ export default function App(){
 
       {/* ════ RESULTADO + AGENDAR ════ */}
       {fase==="resultado"&&savedLead&&(
-        <div style={{minHeight:"100vh",padding:`80px ${isMobile?"16px":"clamp(16px,5vw,48px)"}`,background:"#080407",position:"relative"}}>
+        <div style={{minHeight:"100vh",padding:`80px ${isMobile?"16px":"clamp(16px,5vw,48px)"}`,background:"#0A0A0B",position:"relative"}}>
           <ParticleCanvas/>
           <div style={{maxWidth:1040,margin:"0 auto",position:"relative",zIndex:1}}>
 
