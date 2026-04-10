@@ -143,7 +143,7 @@ function RitualDemoAnimation() {
       </div>
 
       {/* Demo screen */}
-      <div style={{ background:"#0d0d0e", border:"1px solid rgba(255,255,255,.07)", borderRadius:20, overflow:"hidden", maxWidth:420, margin:"0 auto", boxShadow:"0 24px 80px rgba(0,0,0,.7)" }}>
+      <div style={{ background:"#0d0d0e", border:"1px solid rgba(255,255,255,.07)", borderRadius:20, overflow:"hidden", maxWidth:420, margin:"0 auto", boxShadow:"0 24px 80px rgba(0,0,0,.7)", width:"100%" }}>
         {/* Topbar */}
         <div style={{ background:"#131314", padding:"12px 18px", display:"flex", alignItems:"center", gap:10, borderBottom:"1px solid rgba(255,255,255,.05)" }}>
           <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#FF5C1A,#D4AF37)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:900, color:"white" }}>R</div>
@@ -347,12 +347,12 @@ function Agendador({leadData}){
       </div>
       {/* Dias */}
       <div style={{fontSize:9,color:"rgba(240,217,204,.3)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Escolha o dia</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:5,marginBottom:16}}>
         {diasUniq.slice(0,10).map((d,i)=>{
           const sel=selDia?.dateStr===d.dateStr;
           const temVaga=slots.some(s=>s.dateStr===d.dateStr&&!blocked[s.key]);
           return(<button key={i} disabled={!temVaga||loadingSlots} onClick={()=>{setSelDia(d);setSelHora(null);}}
-            style={{background:sel?"rgba(255,92,26,.15)":temVaga?"rgba(255,255,255,.04)":"rgba(255,255,255,.01)",border:`1.5px solid ${sel?"#FF5C1A":temVaga?"rgba(255,255,255,.08)":"rgba(255,255,255,.03)"}`,borderRadius:10,padding:"10px 4px",cursor:temVaga&&!loadingSlots?"pointer":"not-allowed",opacity:temVaga?1:.35,transition:"all .2s"}}>
+            style={{background:sel?"rgba(255,92,26,.15)":temVaga?"rgba(255,255,255,.04)":"rgba(255,255,255,.01)",border:`1.5px solid ${sel?"#FF5C1A":temVaga?"rgba(255,255,255,.08)":"rgba(255,255,255,.03)"}`,borderRadius:10,padding:"12px 4px",minHeight:"52px",cursor:temVaga&&!loadingSlots?"pointer":"not-allowed",opacity:temVaga?1:.35,transition:"all .2s"}}>
             <div style={{fontSize:7,color:sel?"#FF5C1A":"rgba(255,255,255,.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:700}}>{["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.dt.getDay()]}</div>
             <div style={{fontSize:14,fontWeight:700,color:sel?"#FF5C1A":temVaga?"rgba(255,255,255,.8)":"rgba(255,255,255,.3)",marginTop:1}}>{d.dt.getDate()}</div>
             <div style={{fontSize:7,color:sel?"rgba(255,92,26,.6)":"rgba(255,255,255,.2)"}}>{["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][d.dt.getMonth()]}</div>
@@ -366,11 +366,11 @@ function Agendador({leadData}){
         </div>
         {loadingSlots?<div style={{textAlign:"center",padding:"12px",fontSize:11,color:"rgba(255,255,255,.2)"}}>Carregando...</div>:
          horasParaDia.length===0?<div style={{textAlign:"center",padding:"16px",fontSize:12,color:"rgba(255,255,255,.3)"}}>Sem horários disponíveis.<br/><span style={{fontSize:11,color:"rgba(201,149,108,.5)"}}>Escolha outro dia →</span></div>:
-         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:14}}>
+         <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:5,marginBottom:14}}>
           {horasParaDia.map(h=>{
             const sel=selHora===h;
             return(<button key={h} onClick={()=>setSelHora(sel?null:h)}
-              style={{background:sel?"linear-gradient(135deg,#FF5C1A,#da4600)":"rgba(255,255,255,.04)",border:`1px solid ${sel?"#FF5C1A":"rgba(255,255,255,.08)"}`,borderRadius:8,padding:"10px 4px",cursor:"pointer",transition:"all .2s"}}>
+              style={{background:sel?"linear-gradient(135deg,#FF5C1A,#da4600)":"rgba(255,255,255,.04)",border:`1px solid ${sel?"#FF5C1A":"rgba(255,255,255,.08)"}`,borderRadius:8,padding:"12px 4px",minHeight:"52px",cursor:"pointer",transition:"all .2s"}}>
               <div style={{fontSize:11,fontWeight:700,color:sel?"white":"rgba(255,255,255,.75)"}}>{h}</div>
             </button>);
           })}
@@ -399,6 +399,7 @@ function Agendador({leadData}){
 ══════════════════════════════════════════ */
 export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth < 1024 && window.innerWidth >= 768);
   useEffect(()=>{ fbTrack("PageView",{}); },[]);
   const [step, setStep] = useState(0);       // 0=hero 1-4=funil 5=agendador 6=confirmado
   const [res, setRes] = useState({});
@@ -409,7 +410,7 @@ export default function App() {
   const topRef = useRef(null);
 
   useEffect(() => {
-    const ck = () => setIsMobile(window.innerWidth < 768);
+    const ck = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth < 1024 && window.innerWidth >= 768); };
     window.addEventListener("resize", ck);
     // Simula contagem de vagas decrescendo
     const t = setTimeout(() => setVagas(2), 45000);
@@ -472,13 +473,14 @@ export default function App() {
         @keyframes scan{0%{transform:translateY(-100%)}100%{transform:translateY(400%)}}
         @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
         .gold-shimmer{background:linear-gradient(90deg,#c9956c 0%,#D4AF37 20%,#FFE088 50%,#D4AF37 80%,#c9956c 100%);background-size:300% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer_g 4s linear infinite;}
+        @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
         .oracle-border{border:1px solid transparent;background:linear-gradient(#131314,#131314) padding-box,linear-gradient(135deg,#FF5C1A,#D4AF37,#FF5C1A) border-box;}
       `}</style>
 
-      <div style={{ minHeight:"100vh", background:"#0A0A0B" }}>
+      <div style={{ minHeight:"100vh", background:"#0A0A0B", overflowX:"hidden", paddingBottom: step===0?"0":"64px" }}>
 
         {/* ── NAVBAR ── */}
-        <nav style={{ position:"fixed", top:0, left:0, right:0, zIndex:100, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", background:"rgba(10,10,11,.85)", backdropFilter:"blur(20px)", borderBottom:"1px solid rgba(255,255,255,.04)" }}>
+        <nav style={{ position:"fixed", top:0, left:0, right:0, zIndex:100, padding:isMobile?"12px 16px":"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", background:"rgba(10,10,11,.85)", backdropFilter:"blur(20px)", borderBottom:"1px solid rgba(255,255,255,.04)" }}>
           <div style={{ fontFamily:"'Unbounded',sans-serif", fontSize:15, fontWeight:900, color:"#F8F9FA", letterSpacing:"-0.5px" }}>
             RITUAL<span style={{ color:"#FF5C1A", marginLeft:3 }}>·</span>
           </div>
@@ -496,7 +498,7 @@ export default function App() {
 
         {/* ── STICKY BOTTOM BAR — aparece após 300px scroll ── */}
         {scrollY > 300 && step === 0 && (
-          <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, background:"rgba(10,10,11,.95)", backdropFilter:"blur(20px)", borderTop:"1px solid rgba(255,92,26,.2)", padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, animation:"slideUp .3s ease" }}>
+          <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, paddingBottom:"env(safe-area-inset-bottom,0px)", background:"rgba(10,10,11,.95)", backdropFilter:"blur(20px)", borderTop:"1px solid rgba(255,92,26,.2)", padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, animation:"slideUp .3s ease" }}>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:12, fontWeight:700, color:"#f0d9cc", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
                 Sua clínica perde em média <span style={{ color:"#ef4444" }}>R$ 900/mês</span> com pacientes sumidas.
@@ -533,7 +535,7 @@ export default function App() {
             </div>
 
             {/* Headline */}
-            <h1 style={{ fontFamily:"'Unbounded',sans-serif", fontSize:`clamp(30px,5.5vw,68px)`, fontWeight:900, lineHeight:.95, letterSpacing:"-2px", marginBottom:24, animation:"fadeIn .8s .2s ease both" }}>
+            <h1 style={{ fontFamily:"'Unbounded',sans-serif", fontSize:isMobile?"clamp(28px,8vw,40px)":isTablet?"clamp(32px,5vw,52px)":"clamp(36px,5.5vw,68px)", fontWeight:900, lineHeight:.95, letterSpacing:"-2px", marginBottom:24, animation:"fadeIn .8s .2s ease both" }}>
               <span style={{ display:"block", color:"#F8F9FA" }}>SUAS PACIENTES</span>
               <span style={{ display:"block", color:"#F8F9FA" }}>ESTÃO SUMINDO.</span>
               <span className="gold-shimmer" style={{ display:"block", fontSize:`clamp(26px,4.5vw,58px)` }}>O RITUAL TRAZ DE VOLTA.</span>
@@ -573,9 +575,9 @@ export default function App() {
         {/* ════════════════════════════
             S2 — DEMO ANIMATION
         ════════════════════════════ */}
-        <section id="demo" style={{ background:"#0e0a12", padding:`clamp(80px,10vh,120px) ${isMobile?"20px":"clamp(24px,8vw,80px)"}` }}>
+        <section id="demo" style={{ background:"#0e0a12", padding:`clamp(60px,8vh,120px) ${isMobile?"16px":isTablet?"32px":"clamp(24px,6vw,80px)"}` }}>
           <div style={{ maxWidth:900, margin:"0 auto" }}>
-            <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:isMobile?40:60, alignItems:"center" }}>
+            <div style={{ display:"grid", gridTemplateColumns:isMobile||isTablet?"1fr":"1fr 1fr", gap:isMobile?40:isTablet?32:60, alignItems:"center" }}>
               <Reveal>
                 <div style={{ fontSize:9, color:"rgba(255,92,26,.6)", letterSpacing:3, textTransform:"uppercase", marginBottom:14, fontWeight:700 }}>● Como funciona</div>
                 <h2 style={{ fontFamily:"'Unbounded',sans-serif", fontSize:isMobile?24:34, fontWeight:900, lineHeight:1.05, letterSpacing:"-1px", marginBottom:20 }}>
@@ -612,7 +614,7 @@ export default function App() {
         {/* ════════════════════════════
             S3 — PERDA ESTIMADA + FUNIL
         ════════════════════════════ */}
-        <section ref={topRef} style={{ background:"#0A0A0B", padding:`clamp(80px,10vh,120px) ${isMobile?"20px":"clamp(24px,8vw,80px)"}` }}>
+        <section ref={topRef} style={{ background:"#0A0A0B", padding:`clamp(60px,8vh,120px) ${isMobile?"16px":isTablet?"32px":"clamp(24px,6vw,80px)"}` }}>
           <div style={{ maxWidth:640, margin:"0 auto" }}>
 
             {/* Funil steps 1-4 */}
@@ -677,31 +679,127 @@ export default function App() {
                 {/* Etapa Form — contato */}
                 {etapaAtual?.tipo === "form" && (
                   <div style={{ animation:"fadeIn .4s ease" }}>
+
+                    {/* ── PERDA HEADER ── */}
                     {perda > 0 && (
-                      <div className="oracle-border" style={{ borderRadius:14, padding:"18px 20px", marginBottom:24 }}>
-                        <div style={{ fontSize:9, color:"rgba(201,149,108,.5)", letterSpacing:2, textTransform:"uppercase", marginBottom:6, fontWeight:700 }}>Perda estimada da sua clínica</div>
-                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:40, fontWeight:700, color:"#ef4444", lineHeight:1 }}>
-                          R$ {perda.toLocaleString("pt-BR")}<span style={{ fontSize:18, color:"rgba(255,255,255,.3)" }}>/mês</span>
+                      <div style={{ background:"linear-gradient(135deg,rgba(239,68,68,.08),rgba(239,68,68,.04))", border:"1.5px solid rgba(239,68,68,.2)", borderRadius:16, padding:"18px 20px", marginBottom:24, position:"relative", overflow:"hidden" }}>
+                        <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"linear-gradient(90deg,transparent,#ef4444,transparent)" }}/>
+                        <div style={{ fontSize:8, color:"rgba(239,68,68,.6)", letterSpacing:2.5, textTransform:"uppercase", marginBottom:4, fontWeight:700 }}>⚠ Perda estimada da sua clínica</div>
+                        <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:4 }}>
+                          <span style={{ fontFamily:"'Unbounded',sans-serif", fontSize:isMobile?32:44, fontWeight:900, color:"#ef4444", letterSpacing:"-2px", lineHeight:1 }}>
+                            R$ {perda.toLocaleString("pt-BR")}
+                          </span>
+                          <span style={{ fontSize:14, color:"rgba(255,255,255,.3)" }}>/mês</span>
                         </div>
-                        <div style={{ fontSize:11, color:"rgba(201,149,108,.5)", marginTop:4 }}>Com retorno automático ativo, o Ritual recupera em média 65% em 30 dias.</div>
+                        <div style={{ fontSize:10, color:"rgba(201,149,108,.6)", lineHeight:1.6 }}>
+                          Com retorno automático, o Ritual recupera <strong style={{ color:"#D4AF37" }}>65% disso em 30 dias.</strong>
+                        </div>
                       </div>
                     )}
-                    <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:isMobile?22:28, fontWeight:700, color:"#f0d9cc", marginBottom:8 }}>{etapaAtual.titulo}</h2>
-                    <p style={{ fontSize:12, color:"rgba(240,217,204,.35)", marginBottom:24 }}>{etapaAtual.sub}</p>
-                    <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:20 }}>
-                      {[["nome","Seu nome","text"],["clinica","Nome da clínica","text"],["whatsapp","WhatsApp (com DDD)","tel"]].map(([k,ph,type]) => (
-                        <input key={k} type={type} placeholder={ph} value={form[k]||""} onChange={e=>F(k,sanitize(e.target.value))}
-                          style={S.inp}
-                          onFocus={e=>e.target.style.borderColor="rgba(255,92,26,.4)"}
-                          onBlur={e=>e.target.style.borderColor="rgba(255,255,255,.08)"}/>
+
+                    {/* ── HEADER ── */}
+                    <div style={{ marginBottom:24 }}>
+                      <div style={{ fontSize:8, color:"rgba(255,92,26,.5)", letterSpacing:2.5, textTransform:"uppercase", marginBottom:8, fontWeight:700 }}>Última etapa</div>
+                      <h2 style={{ fontFamily:"'Unbounded',sans-serif", fontSize:isMobile?18:22, fontWeight:900, color:"#F8F9FA", lineHeight:1.1, letterSpacing:"-0.5px", marginBottom:6 }}>
+                        Para onde mandamos<br/><span style={{ color:"#FF5C1A" }}>seu diagnóstico?</span>
+                      </h2>
+                      <p style={{ fontSize:12, color:"rgba(255,255,255,.35)", lineHeight:1.7 }}>
+                        Menos de 30 segundos. A Equipe Ritual entra em contato em até 2 horas.
+                      </p>
+                    </div>
+
+                    {/* ── CAMPOS ── */}
+                    <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:20 }}>
+
+                      {/* Nome */}
+                      <div style={{ position:"relative" }}>
+                        <div style={{ fontSize:9, color: form.nome?.trim() ? "rgba(16,185,129,.7)" : "rgba(255,255,255,.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontWeight:700, transition:"color .3s", display:"flex", alignItems:"center", gap:6 }}>
+                          {form.nome?.trim() && <span style={{ fontSize:10 }}>✓</span>}
+                          Seu nome
+                        </div>
+                        <input type="text" placeholder="Dra. Maria Silva" value={form.nome||""} onChange={e=>F("nome",sanitize(e.target.value))}
+                          style={{ ...S.inp, borderColor: form.nome?.trim() ? "rgba(16,185,129,.4)" : "rgba(255,255,255,.08)", boxShadow: form.nome?.trim() ? "0 0 0 3px rgba(16,185,129,.06)" : "none", transition:"all .3s" }}
+                          onFocus={e=>{e.target.style.borderColor="rgba(255,92,26,.5)";e.target.style.boxShadow="0 0 0 3px rgba(255,92,26,.08)";}}
+                          onBlur={e=>{e.target.style.borderColor=form.nome?.trim()?"rgba(16,185,129,.4)":"rgba(255,255,255,.08)";e.target.style.boxShadow=form.nome?.trim()?"0 0 0 3px rgba(16,185,129,.06)":"none";}}/>
+                      </div>
+
+                      {/* Clínica */}
+                      <div style={{ position:"relative" }}>
+                        <div style={{ fontSize:9, color: form.clinica?.trim() ? "rgba(16,185,129,.7)" : "rgba(255,255,255,.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontWeight:700, display:"flex", alignItems:"center", gap:6 }}>
+                          {form.clinica?.trim() && <span style={{ fontSize:10 }}>✓</span>}
+                          Nome da clínica
+                        </div>
+                        <input type="text" placeholder="Clínica Estética Silva" value={form.clinica||""} onChange={e=>F("clinica",sanitize(e.target.value))}
+                          style={{ ...S.inp, borderColor: form.clinica?.trim() ? "rgba(16,185,129,.4)" : "rgba(255,255,255,.08)", boxShadow: form.clinica?.trim() ? "0 0 0 3px rgba(16,185,129,.06)" : "none", transition:"all .3s" }}
+                          onFocus={e=>{e.target.style.borderColor="rgba(255,92,26,.5)";e.target.style.boxShadow="0 0 0 3px rgba(255,92,26,.08)";}}
+                          onBlur={e=>{e.target.style.borderColor=form.clinica?.trim()?"rgba(16,185,129,.4)":"rgba(255,255,255,.08)";e.target.style.boxShadow=form.clinica?.trim()?"0 0 0 3px rgba(16,185,129,.06)":"none";}}/>
+                      </div>
+
+                      {/* WhatsApp */}
+                      <div style={{ position:"relative" }}>
+                        <div style={{ fontSize:9, color: form.whatsapp?.replace(/\D/g,"").length>=10 ? "rgba(16,185,129,.7)" : "rgba(255,255,255,.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontWeight:700, display:"flex", alignItems:"center", gap:6 }}>
+                          {form.whatsapp?.replace(/\D/g,"").length>=10 && <span style={{ fontSize:10 }}>✓</span>}
+                          WhatsApp <span style={{ color:"rgba(255,92,26,.6)", fontWeight:900, fontSize:9 }}>*</span>
+                        </div>
+                        <input type="tel" placeholder="(47) 99999-9999" value={form.whatsapp||""} onKeyDown={e=>{ if(e.key==="Enter" && form.nome?.trim() && form.whatsapp?.replace(/\D/g,"").length>=10) enviar(); }} onChange={e=>{
+                          const raw=e.target.value.replace(/\D/g,"").slice(0,11);
+                          const fmt=raw.length<=2?raw:raw.length<=7?"("+raw.slice(0,2)+") "+raw.slice(2):"("+raw.slice(0,2)+") "+raw.slice(2,7)+"-"+raw.slice(7);
+                          F("whatsapp",fmt);
+                        }}
+                          style={{ ...S.inp, borderColor: form.whatsapp?.replace(/\D/g,"").length>=10 ? "rgba(16,185,129,.4)" : "rgba(255,255,255,.08)", boxShadow: form.whatsapp?.replace(/\D/g,"").length>=10 ? "0 0 0 3px rgba(16,185,129,.06)" : "none", transition:"all .3s", letterSpacing:".5px" }}
+                          onFocus={e=>{e.target.style.borderColor="rgba(255,92,26,.5)";e.target.style.boxShadow="0 0 0 3px rgba(255,92,26,.08)";}}
+                          onBlur={e=>{const ok=form.whatsapp?.replace(/\D/g,"").length>=10;e.target.style.borderColor=ok?"rgba(16,185,129,.4)":"rgba(255,255,255,.08)";e.target.style.boxShadow=ok?"0 0 0 3px rgba(16,185,129,.06)":"none";}}/>
+                      </div>
+
+                      {/* Email — opcional */}
+                      <div style={{ position:"relative" }}>
+                        <div style={{ fontSize:9, color: form.email?.includes("@") ? "rgba(16,185,129,.7)" : "rgba(255,255,255,.2)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                            {form.email?.includes("@") && <span style={{ fontSize:10 }}>✓</span>}
+                            E-mail
+                          </div>
+                          <span style={{ fontSize:8, color:"rgba(255,255,255,.2)", fontWeight:400, letterSpacing:0, textTransform:"none" }}>opcional — receba o diagnóstico também por e-mail</span>
+                        </div>
+                        <input type="email" placeholder="dra.maria@clinica.com.br" value={form.email||""} onChange={e=>F("email",sanitize(e.target.value))}
+                          style={{ ...S.inp, borderColor: form.email?.includes("@") ? "rgba(16,185,129,.4)" : "rgba(255,255,255,.05)", opacity:.75, boxShadow: form.email?.includes("@") ? "0 0 0 3px rgba(16,185,129,.06)" : "none", transition:"all .3s", fontSize:13 }}
+                          onFocus={e=>{e.target.style.borderColor="rgba(255,92,26,.5)";e.target.style.opacity="1";e.target.style.boxShadow="0 0 0 3px rgba(255,92,26,.08)";}}
+                          onBlur={e=>{const ok=form.email?.includes("@");e.target.style.borderColor=ok?"rgba(16,185,129,.4)":"rgba(255,255,255,.05)";e.target.style.opacity=ok?"1":".75";e.target.style.boxShadow=ok?"0 0 0 3px rgba(16,185,129,.06)":"none";}}/>
+                      </div>
+                    </div>
+
+                    {/* ── TRUST BAR ── */}
+                    <div style={{ display:"flex", gap:14, marginBottom:16, padding:"10px 12px", background:"rgba(255,255,255,.02)", borderRadius:10, border:"1px solid rgba(255,255,255,.04)" }}>
+                      {[["🔒","Sem spam"],["⚡","Resposta em 2h"],["🎯","Demo ao vivo"]].map(([ic,txt])=>(
+                        <div key={txt} style={{ display:"flex", alignItems:"center", gap:5, flex:1 }}>
+                          <span style={{ fontSize:13 }}>{ic}</span>
+                          <span style={{ fontSize:9, color:"rgba(255,255,255,.35)", fontWeight:600 }}>{txt}</span>
+                        </div>
                       ))}
                     </div>
-                    <button onClick={enviar} disabled={loading||!form.nome?.trim()||!form.whatsapp?.trim()}
-                      style={{ width:"100%", background:loading||!form.nome?.trim()||!form.whatsapp?.trim()?"rgba(255,255,255,.04)":"linear-gradient(135deg,#FF5C1A,#da4600)", border:"none", borderRadius:12, padding:"16px", cursor:loading?"not-allowed":"pointer", color:loading?"rgba(255,255,255,.3)":"white", fontSize:15, fontWeight:800, fontFamily:"'Plus Jakarta Sans',sans-serif", transition:"all .2s", boxShadow: form.nome?.trim()&&form.whatsapp?.trim()?"0 8px 30px rgba(255,92,26,.25)":"none" }}>
-                      {loading ? "Salvando..." : "Receber diagnóstico →"}
-                    </button>
-                    <div style={{ fontSize:10, color:"rgba(255,255,255,.2)", textAlign:"center", marginTop:12 }}>
-                      Sem spam. A Equipe Ritual entra em contato em até 2 horas.
+
+                    {/* ── CTA BUTTON — inteligente ── */}
+                    {(()=>{
+                      const nomeOk = form.nome?.trim();
+                      const waOk   = form.whatsapp?.replace(/\D/g,"").length >= 10;
+                      const tudo   = nomeOk && waOk;
+                      const label  = loading ? "Processando..." : !nomeOk ? "Preencha seu nome →" : !waOk ? "Informe o WhatsApp →" : "Receber diagnóstico grátis →";
+                      return(
+                        <button onClick={enviar} disabled={loading||!tudo}
+                          style={{ width:"100%", background: tudo && !loading ? "linear-gradient(135deg,#FF5C1A,#da4600)" : "rgba(255,255,255,.04)", border: tudo?"none":"1px solid rgba(255,255,255,.07)", borderRadius:14, padding:"17px 20px", cursor: tudo&&!loading ? "pointer":"not-allowed", color: tudo&&!loading ? "white":"rgba(255,255,255,.25)", fontSize:15, fontWeight:900, fontFamily:"'Unbounded',sans-serif", letterSpacing:"-0.3px", transition:"all .3s", boxShadow: tudo&&!loading ? "0 10px 40px rgba(255,92,26,.3)":"none", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                          {loading && <div style={{ width:16, height:16, border:"2px solid rgba(255,255,255,.3)", borderTopColor:"white", borderRadius:"50%", animation:"spin .8s linear infinite" }}/>}
+                          {label}
+                        </button>
+                      );
+                    })()}
+
+                    {/* Micro social proof */}
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:12 }}>
+                      <div style={{ display:"flex" }}>
+                        {["#FF5C1A","#D4AF37","#8b5cf6","#10b981","#06b6d4"].map((cor,i)=>(
+                          <div key={i} style={{ width:20, height:20, borderRadius:"50%", background:cor, border:"2px solid #0A0A0B", marginLeft:i>0?-8:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:900, color:"white" }}>{["C","M","J","A","R"][i]}</div>
+                        ))}
+                      </div>
+                      <span style={{ fontSize:10, color:"rgba(255,255,255,.25)" }}>+{vagas === 3 ? "12" : "10"} médicas receberam o diagnóstico hoje</span>
                     </div>
                   </div>
                 )}
@@ -773,7 +871,7 @@ export default function App() {
         ════════════════════════════ */}
         <section style={{ background:"linear-gradient(135deg,rgba(255,92,26,.06),rgba(212,175,55,.03))", borderTop:"1px solid rgba(255,255,255,.04)", borderBottom:"1px solid rgba(255,255,255,.04)", padding:"60px 24px" }}>
           <div style={{ maxWidth:900, margin:"0 auto" }}>
-            <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)", gap:24 }}>
+            <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":isTablet?"repeat(2,1fr)":"repeat(4,1fr)", gap:24 }}>
               {[
                 ["+65%","Taxa de retorno médio", "#FF5C1A"],
                 ["<48h","Primeira resposta automatizada","#D4AF37"],
@@ -794,7 +892,7 @@ export default function App() {
         {/* ════════════════════════════
             S5 — O QUE ESTÁ INCLUSO
         ════════════════════════════ */}
-        <section style={{ background:"#0A0A0B", padding:`clamp(80px,10vh,120px) ${isMobile?"20px":"clamp(24px,8vw,80px)"}` }}>
+        <section style={{ background:"#0A0A0B", padding:`clamp(60px,8vh,120px) ${isMobile?"16px":isTablet?"32px":"clamp(24px,6vw,80px)"}` }}>
           <div style={{ maxWidth:900, margin:"0 auto" }}>
             <Reveal>
               <div style={{ textAlign:"center", marginBottom:48 }}>
@@ -808,7 +906,7 @@ export default function App() {
               </div>
             </Reveal>
 
-            <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)", gap:16 }}>
+            <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(3,1fr)", gap:16 }}>
               {[
                 ["🤖","Retorno automático","Identifica quem está no ciclo de retorno e manda mensagem personalizada — sem você tocar no celular.","#FF5C1A"],
                 ["🧠","Ritual Intelligence","IA monitora padrão de respostas e detecta abandono antes de acontecer.","#8b5cf6"],
@@ -834,7 +932,7 @@ export default function App() {
         {/* ════════════════════════════
             S6 — CTA FINAL + URGÊNCIA
         ════════════════════════════ */}
-        <section style={{ background:"#0e0a12", padding:`clamp(80px,10vh,120px) ${isMobile?"20px":"clamp(24px,8vw,80px)"}` }}>
+        <section style={{ background:"#0e0a12", padding:`clamp(60px,8vh,120px) ${isMobile?"16px":isTablet?"32px":"clamp(24px,6vw,80px)"}` }}>
           <div style={{ maxWidth:560, margin:"0 auto", textAlign:"center" }}>
             <Reveal>
               <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(239,68,68,.06)", border:"1px solid rgba(239,68,68,.2)", borderRadius:40, padding:"6px 18px", marginBottom:24 }}>
