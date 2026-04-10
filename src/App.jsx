@@ -4,6 +4,61 @@ const SB_URL = "https://ncqsuxqxujyfekjbgzch.supabase.co";
 const SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcXN1eHF4dWp5ZmVramJnemNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTcyMjAsImV4cCI6MjA5MDQ3MzIyMH0.xgwXSHE8dijOa7dtnzZ-CEG1_sP6L3yFvp3JYJ7LE3w";
 const HUB     = "https://wylvex-backend-production.up.railway.app";
 
+// ── Config da LP ──
+const RC = {
+  nome_clinica: "Ritual",
+  vertical:     "harmonizacao",
+};
+
+// Textos adaptados por vertical
+const V_TEXTO = {
+  harmonizacao: {
+    h1_linha1: "SUAS PACIENTES",
+    h1_linha2: "ESTÃO SUMINDO.",
+    h1_linha3: "O RITUAL TRAZ DE VOLTA.",
+    sub: "Enquanto você atende, o Ritual monitora cada paciente em silêncio e envia mensagens no momento certo — automaticamente.",
+    proc_demo: "Toxina botulínica · Harmonização",
+    msg_demo: "Oi Mariana! 😊 Vi que faz um tempinho desde a sua última toxina — seu ciclo de manutenção seria agora. Tá sentindo alguma diferença no resultado?",
+    dias_demo: "42 dias sem retorno",
+    ciclo_alert: "42d inativa · ciclo de toxina vencido",
+    mensalidade_tag: "Uma toxina paga o sistema.",
+  },
+  odontologia: {
+    h1_linha1: "SEUS PACIENTES",
+    h1_linha2: "NÃO VOLTAM.",
+    h1_linha3: "O RITUAL RECUPERA.",
+    sub: "Enquanto você trabalha, o Ritual acompanha cada paciente e agenda retornos automaticamente — sem você tocar no celular.",
+    proc_demo: "Clareamento · Odontologia",
+    msg_demo: "Oi Mariana! 😊 Passando para lembrar que sua revisão semestral já está no prazo. Quer agendar essa semana?",
+    dias_demo: "180 dias sem retorno",
+    ciclo_alert: "180d inativa · revisão semestral vencida",
+    mensalidade_tag: "Uma consulta paga o sistema.",
+  },
+  psicologia: {
+    h1_linha1: "SEUS PACIENTES",
+    h1_linha2: "ABANDONAM O PROCESSO.",
+    h1_linha3: "O RITUAL MANTÉM O VÍNCULO.",
+    sub: "O Ritual acompanha o engajamento dos seus pacientes e envia lembretes humanizados — preservando o vínculo terapêutico.",
+    proc_demo: "Psicoterapia · Sessão mensal",
+    msg_demo: "Oi Mariana! 😊 Faz um tempo que não conversamos. Como você está? Quando quiser retomar, estou aqui.",
+    dias_demo: "60 dias sem sessão",
+    ciclo_alert: "60d inativa · sessão mensal vencida",
+    mensalidade_tag: "Uma sessão paga o sistema.",
+  },
+  estetica: {
+    h1_linha1: "SUAS CLIENTES",
+    h1_linha2: "SOMEM APÓS O PROCEDIMENTO.",
+    h1_linha3: "O RITUAL FIDELIZA.",
+    sub: "O Ritual monitora o ciclo de retorno de cada cliente e dispara mensagens personalizadas no momento certo — automático.",
+    proc_demo: "Limpeza de pele · Estética corporal",
+    msg_demo: "Oi Mariana! 😊 Seu ciclo de manutenção está chegando. Que tal agendar sua próxima sessão essa semana?",
+    dias_demo: "45 dias sem retorno",
+    ciclo_alert: "45d inativa · ciclo de manutenção vencido",
+    mensalidade_tag: "Uma cliente de retorno paga o sistema.",
+  },
+};
+const VT = V_TEXTO[RC.vertical] || V_TEXTO.harmonizacao;
+
 async function sbInsert(table, body) {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
@@ -36,12 +91,7 @@ async function salvarLead(dados) {
   };
   const [lead] = await sbInsert("leads", row)||[null];
   fbTrack("Lead", { content_name: "Diagnóstico Ritual", currency: "BRL", value: Math.round(perda/12) });
-  try {
-    await fetch(`${HUB}/api/confirm-lead`, {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({...dados, perda})
-    });
-  } catch {}
+  // confirm-lead só dispara no agendamento (evita dupla mensagem)
   return lead;
 }
 
@@ -164,7 +214,7 @@ function RitualDemoAnimation() {
               <div style={{ width:36, height:36, borderRadius:"50%", background:"rgba(201,149,108,.15)", border:"1.5px solid rgba(201,149,108,.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:"#c9956c", flexShrink:0 }}>M</div>
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:12, fontWeight:700, color:"#f0d9cc" }}>Mariana C.</div>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,.3)" }}>Toxina botulínica · Harmonização</div>
+                <div style={{ fontSize:9, color:"rgba(255,255,255,.3)" }}>{VT.proc_demo}</div>
               </div>
               <div style={{ textAlign:"right" }}>
                 <div style={{ fontSize:9, color: step === 0 ? "#ef4444" : step >= 4 ? "#10b981" : "#f59e0b", fontWeight:700, transition:"color .5s" }}>
@@ -536,13 +586,13 @@ export default function App() {
 
             {/* Headline */}
             <h1 style={{ fontFamily:"'Unbounded',sans-serif", fontSize:isMobile?"clamp(28px,8vw,40px)":isTablet?"clamp(32px,5vw,52px)":"clamp(36px,5.5vw,68px)", fontWeight:900, lineHeight:.95, letterSpacing:"-2px", marginBottom:24, animation:"fadeIn .8s .2s ease both" }}>
-              <span style={{ display:"block", color:"#F8F9FA" }}>SUAS PACIENTES</span>
-              <span style={{ display:"block", color:"#F8F9FA" }}>ESTÃO SUMINDO.</span>
-              <span className="gold-shimmer" style={{ display:"block", fontSize:`clamp(26px,4.5vw,58px)` }}>O RITUAL TRAZ DE VOLTA.</span>
+              <span style={{ display:"block", color:"#F8F9FA" }}>{VT.h1_linha1}</span>
+              <span style={{ display:"block", color:"#F8F9FA" }}>{VT.h1_linha2}</span>
+              <span className="gold-shimmer" style={{ display:"block", fontSize:`clamp(26px,4.5vw,58px)` }}>{VT.h1_linha3}</span>
             </h1>
 
             <p style={{ fontSize:isMobile?14:18, color:"rgba(240,217,204,.5)", lineHeight:1.75, maxWidth:520, margin:"0 auto 36px", animation:"fadeIn .8s .4s ease both" }}>
-              Enquanto você atende, o Ritual monitora cada paciente em silêncio e envia mensagens no momento certo — automaticamente.
+              {VT.sub}
             </p>
 
             {/* Hero CTAs */}
@@ -875,7 +925,7 @@ export default function App() {
               {[
                 ["+65%","Taxa de retorno médio", "#FF5C1A"],
                 ["<48h","Primeira resposta automatizada","#D4AF37"],
-                ["R$490","Mensalidade. Uma toxina paga.","#10b981"],
+                ["R$490",`Mensalidade. ${VT.mensalidade_tag}`,"#10b981"],
                 ["30 dias","Garantia. Resultado ou reembolso.","rgba(139,92,246,1)"],
               ].map(([n,l,cor]) => (
                 <Reveal key={n}>
@@ -979,7 +1029,7 @@ export default function App() {
         {/* Footer */}
         <footer style={{ background:"#0A0A0B", borderTop:"1px solid rgba(255,255,255,.04)", padding:"28px 24px", textAlign:"center" }}>
           <div style={{ fontFamily:"'Unbounded',sans-serif", fontSize:12, fontWeight:900, color:"rgba(255,255,255,.2)", marginBottom:6 }}>RITUAL<span style={{ color:"#FF5C1A33" }}>·</span></div>
-          <div style={{ fontSize:10, color:"rgba(255,255,255,.15)" }}>Wylvex · Joinville, SC · Sistema de Gestão para Clínicas de Harmonização</div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,.15)" }}>{RC.nome_clinica} · Wylvex · Sistema Inteligente de Gestão para Clínicas</div>
         </footer>
 
       </div>
