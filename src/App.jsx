@@ -56,7 +56,7 @@ async function salvarReuniao(dados){
   };
   await sbInsert("reunioes", nova);
   fbTrack("Schedule",{content_name:"Call Ritual",currency:"BRL",value:nova.perda||0});
-  try{await fetch(`${HUB}/api/confirm-lead`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...dados,data:dados.data,hora:dados.hora})});}catch{}
+  try{await fetch(`${HUB}/api/confirm-lead`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...dados,phone:dados.tel||dados.whatsapp||"",data:dados.data,hora:dados.hora})});}catch{}
 }
 
 const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
@@ -494,6 +494,22 @@ export default function App() {
           </div>
         </nav>
 
+        {/* ── STICKY BOTTOM BAR — aparece após 300px scroll ── */}
+        {scrollY > 300 && step === 0 && (
+          <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, background:"rgba(10,10,11,.95)", backdropFilter:"blur(20px)", borderTop:"1px solid rgba(255,92,26,.2)", padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, animation:"slideUp .3s ease" }}>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:"#f0d9cc", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                Sua clínica perde em média <span style={{ color:"#ef4444" }}>R$ 900/mês</span> com pacientes sumidas.
+              </div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,.3)", marginTop:1 }}>Calculamos o seu em 2 minutos — grátis</div>
+            </div>
+            <button onClick={()=>{ setStep(1); topRef.current?.scrollIntoView({behavior:"smooth"}); fbTrack("ViewContent",{content_name:"sticky_bar_cta"}); }}
+              style={{ background:"linear-gradient(135deg,#FF5C1A,#da4600)", border:"none", borderRadius:9, padding:"10px 20px", cursor:"pointer", color:"white", fontSize:12, fontWeight:800, fontFamily:"'Plus Jakarta Sans',sans-serif", whiteSpace:"nowrap", flexShrink:0, boxShadow:"0 4px 20px rgba(255,92,26,.35)" }}>
+              Calcular →
+            </button>
+          </div>
+        )}
+
         {/* ════════════════════════════
             S1 — HERO
         ════════════════════════════ */}
@@ -740,6 +756,13 @@ export default function App() {
                 <div style={{ fontSize:11, color:"rgba(255,255,255,.2)", textAlign:"center" }}>
                   Na call, você vê o sistema completo com os dados da sua clínica.
                 </div>
+                <div style={{textAlign:"center",marginTop:16,paddingTop:16,borderTop:"1px solid rgba(255,255,255,.05)"}}>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,.25)",marginBottom:8}}>Prefere falar antes?</div>
+                  <a href="https://wa.me/554799138922?text=Oi!%20Vim%20pelo%20diagnóstico%20Ritual%20e%20quero%20saber%20mais." target="_blank" rel="noopener noreferrer"
+                    style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(37,211,102,.08)",border:"1px solid rgba(37,211,102,.2)",borderRadius:10,padding:"10px 18px",textDecoration:"none",color:"#25d166",fontSize:12,fontWeight:700}}>
+                    <span style={{fontSize:16}}>💬</span> Chamar no WhatsApp
+                  </a>
+                </div>
               </div>
             )}
           </div>
@@ -838,6 +861,22 @@ export default function App() {
             </Reveal>
           </div>
         </section>
+
+        {/* ── SOCIAL PROOF STRIP ── */}
+        <div style={{ background:"rgba(16,185,129,.04)", borderTop:"1px solid rgba(16,185,129,.1)", borderBottom:"1px solid rgba(16,185,129,.1)", padding:"14px 24px", overflow:"hidden" }}>
+          <div style={{ display:"flex", gap:32, animation:"ticker 18s linear infinite", whiteSpace:"nowrap" }}>
+            {[...Array(3)].map((_,gi)=>(
+              <div key={gi} style={{ display:"flex", gap:32, flexShrink:0 }}>
+                {["Dra. Camila — Floripa","Dra. Rafaela — SP","Dra. Letícia — BH","Dra. Marina — Curitiba","Dra. Ana — Joinville","Dra. Juliana — Porto Alegre"].map((n,i)=>(
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+                    <div style={{ width:7, height:7, borderRadius:"50%", background:"#10b981" }}/>
+                    <span style={{ fontSize:11, color:"rgba(255,255,255,.35)" }}>{n} <span style={{ color:"#10b981", fontWeight:700 }}>agendou agora</span></span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Footer */}
         <footer style={{ background:"#0A0A0B", borderTop:"1px solid rgba(255,255,255,.04)", padding:"28px 24px", textAlign:"center" }}>
