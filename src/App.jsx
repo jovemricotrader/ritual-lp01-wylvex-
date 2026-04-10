@@ -237,17 +237,15 @@ function MiniDemo({perda,pacientes}){
 ══════════════════════════════════════ */
 function Agendador({leadData}){
   const [blocked,setBlocked]=useState({});
-  // Recalcula slots a cada vez que o componente é montado (sem cache stale)
-  const slots=gerarSlots();
-  const diasUniq=(()=>{
-    const seen=new Set();return slots.filter(s=>{if(seen.has(s.dateStr))return false;seen.add(s.dateStr);return true;});
-  })();
+  const [loadingSlots,setLoadingSlots]=useState(true);
+  const [erroSalvar,setErroSalvar]=useState(null);
+  const slots=gerarSlots(); // recalcula no mount — sem cache stale
+  const diasUniq=(()=>{const seen=new Set();return slots.filter(s=>{if(seen.has(s.dateStr))return false;seen.add(s.dateStr);return true;});})();
   const [selDia,setSelDia]=useState(null);
   const [selHora,setSelHora]=useState(null);
   const [status,setStatus]=useState("idle");
 
-  useEffect(()=>{(async()=>{
-    // Load booked slots from Supabase
+  const carregarOcupados=async()=>{
     try{
       const r=await fetch(`${SB_URL}/rest/v1/reunioes?clinica_id=eq.wylvex&status=eq.agendada&select=data,hora`,
         {headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
@@ -255,74 +253,98 @@ function Agendador({leadData}){
       const b={};(rows||[]).forEach(x=>{if(x.data&&x.hora)b[`${x.data}:${x.hora}`]=true;});
       setBlocked(b);
     }catch{}
-  })();},[]);
+    setLoadingSlots(false);
+  };
 
-  const horasParaDia=selDia?slots.filter(s=>s.dateStr===selDia.dateStr&&!blocked[s.key]):[]; 
+  useEffect(()=>{
+    carregarOcupados();
+    const iv=setInterval(carregarOcupados,60000); // recarrega a cada 60s
+    return()=>clearInterval(iv);
+  },[]);
+
+  // FIX: usa gerarSlots filtrado — horários passados de HOJE nunca aparecem
+  const horasParaDia=selDia?slots.filter(s=>s.dateStr===selDia.dateStr&&!blocked[s.key]).map(s=>s.h):[];
 
   const confirmar=async()=>{
     if(!selDia||!selHora||status==="loading")return;
-    setStatus("loading");
-    const nb={...blocked,[`${selDia.dateStr}:${selHora}`]:{nome:leadData.nome,at:new Date().toISOString()}};
-    setBlocked(nb);
-    await salvarReuniao({data:selDia.dateStr,hora:selHora,dia:selDia.label,nome:leadData.nome,clinica:leadData.clinica,tel:leadData.whatsapp,score:leadData.score,perda:leadData.perda});
-    setStatus("done");
+    setErroSalvar(null);setStatus("loading");
+    try{
+      await salvarReuniao({
+        data:selDia.dateStr,hora:selHora,dia:selDia.label,
+        nome:leadData.nome,tel:leadData.tel,
+        email:leadData.email||"",clinica:leadData.clinica||"",
+        score:leadData.score||0,perda:leadData.perda||0
+      });
+      setBlocked(b=>({...b,[`${selDia.dateStr}:${selHora}`]:true})); // atualiza só após sucesso
+      setStatus("done");
+    }catch(e){
+      setStatus("idle");
+      setErroSalvar("Erro ao confirmar. Tente novamente ou fale pelo WhatsApp.");
+    }
   };
 
   if(status==="done")return(
-    <div style={{background:"rgba(16,185,129,.05)",border:"1px solid rgba(16,185,129,.2)",borderRadius:14,padding:"24px 20px",textAlign:"center"}}>
-      <div style={{fontSize:36,marginBottom:10}}>✨</div>
-      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:"#f0d9cc",marginBottom:5}}>Call confirmada.</div>
-      <div style={{fontSize:13,color:"#10b981",fontWeight:600,marginBottom:4}}>{selDia?.label} · {selHora}</div>
-      <div style={{fontSize:12,color:"rgba(240,217,204,.35)",lineHeight:1.7}}>Você vai receber a confirmação no WhatsApp.<br/>Nossa equipe estará pronta com seu diagnóstico completo.</div>
+    <div style={{textAlign:"center",padding:"28px 20px",animation:"fadeIn .6s ease"}}>
+      <div style={{fontSize:40,marginBottom:12}}>✨</div>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:"#f0d9cc",marginBottom:6}}>Call confirmada.</div>
+      <div style={{fontSize:14,color:"#10b981",fontWeight:700,marginBottom:6}}>{selDia?.label} · {selHora}</div>
+      <div style={{fontSize:12,color:"rgba(240,217,204,.35)",lineHeight:1.8}}>Você vai receber a confirmação no WhatsApp.<br/>Nossa equipe estará pronta com seu diagnóstico completo.</div>
     </div>
   );
 
   return(
-    <div className="oracle-border" style={{borderRadius:14,padding:"20px 18px",background:"#0A0A0B"}}>
-      <div style={{fontSize:9,color:"#c9956c",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:16,display:"flex",alignItems:"center",gap:6}}>
+    <div>
+      <div style={{fontSize:9,color:"rgba(201,149,108,.6)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
         <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c"}}/>
         Agende sua call gratuita
       </div>
       {/* Dias */}
       <div style={{fontSize:9,color:"rgba(240,217,204,.3)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Escolha o dia</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5,marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5,marginBottom:16}}>
         {diasUniq.slice(0,10).map((d,i)=>{
           const sel=selDia?.dateStr===d.dateStr;
           const temVaga=slots.some(s=>s.dateStr===d.dateStr&&!blocked[s.key]);
-          return(<button key={i} disabled={!temVaga} onClick={()=>{setSelDia(d);setSelHora(null);}} style={{background:sel?"rgba(201,149,108,.2)":temVaga?"rgba(255,255,255,.03)":"rgba(255,255,255,.01)",border:`1px solid ${sel?"rgba(201,149,108,.5)":temVaga?"rgba(255,255,255,.07)":"rgba(255,255,255,.03)"}`,borderRadius:8,padding:"8px 3px",cursor:temVaga?"pointer":"not-allowed",opacity:temVaga?1:.3,transition:"all .2s"}}>
-            <div style={{fontSize:7,color:sel?"#c9956c":"rgba(255,255,255,.3)",textTransform:"uppercase",letterSpacing:.5}}>{DIAS[d.dt.getDay()]}</div>
-            <div style={{fontSize:14,fontWeight:700,color:sel?"#f0d9cc":"rgba(255,255,255,.7)"}}>{d.dt.getDate()}</div>
-            <div style={{fontSize:7,color:sel?"rgba(201,149,108,.6)":"rgba(255,255,255,.25)"}}>{MESES[d.dt.getMonth()]}</div>
+          return(<button key={i} disabled={!temVaga||loadingSlots} onClick={()=>{setSelDia(d);setSelHora(null);}}
+            style={{background:sel?"rgba(255,92,26,.15)":temVaga?"rgba(255,255,255,.04)":"rgba(255,255,255,.01)",border:`1.5px solid ${sel?"#FF5C1A":temVaga?"rgba(255,255,255,.08)":"rgba(255,255,255,.03)"}`,borderRadius:10,padding:"10px 4px",cursor:temVaga&&!loadingSlots?"pointer":"not-allowed",opacity:temVaga?1:.35,transition:"all .2s"}}>
+            <div style={{fontSize:7,color:sel?"#FF5C1A":"rgba(255,255,255,.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:700}}>{["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.dt.getDay()]}</div>
+            <div style={{fontSize:14,fontWeight:700,color:sel?"#FF5C1A":temVaga?"rgba(255,255,255,.8)":"rgba(255,255,255,.3)",marginTop:1}}>{d.dt.getDate()}</div>
+            <div style={{fontSize:7,color:sel?"rgba(255,92,26,.6)":"rgba(255,255,255,.2)"}}>{["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][d.dt.getMonth()]}</div>
           </button>);
         })}
       </div>
-      {/* Horários */}
-      {selDia&&(<>
-        <div style={{fontSize:9,color:"rgba(240,217,204,.3)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Horário disponível</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:14}}>
-          {["09:00","10:00","11:00","13:00","14:00","15:00","16:00"].map(h=>{
-            const ocu=!!blocked[`${selDia.dateStr}:${h}`];const sel=selHora===h;
-            return(<button key={h} disabled={ocu} onClick={()=>setSelHora(h)} style={{background:sel?"rgba(201,149,108,.2)":ocu?"rgba(255,255,255,.01)":"rgba(255,255,255,.04)",border:`1px solid ${sel?"rgba(201,149,108,.5)":ocu?"rgba(255,255,255,.03)":"rgba(255,255,255,.07)"}`,borderRadius:7,padding:"9px 3px",cursor:ocu?"not-allowed":"pointer",opacity:ocu?.25:1,transition:"all .2s"}}>
-              <div style={{fontSize:11,fontWeight:700,color:sel?"#f0d9cc":ocu?"rgba(255,255,255,.2)":"rgba(255,255,255,.65)"}}>{h}</div>
+      {/* Horários — usa horasParaDia (filtrado de gerarSlots) */}
+      {selDia&&<>
+        <div style={{fontSize:9,color:"rgba(240,217,204,.3)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>
+          Horário disponível {!loadingSlots&&horasParaDia.length===0?"— sem vagas neste dia":""}
+        </div>
+        {loadingSlots?<div style={{textAlign:"center",padding:"12px",fontSize:11,color:"rgba(255,255,255,.2)"}}>Carregando...</div>:
+         horasParaDia.length===0?<div style={{textAlign:"center",padding:"16px",fontSize:12,color:"rgba(255,255,255,.3)"}}>Sem horários disponíveis.<br/><span style={{fontSize:11,color:"rgba(201,149,108,.5)"}}>Escolha outro dia →</span></div>:
+         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:14}}>
+          {horasParaDia.map(h=>{
+            const sel=selHora===h;
+            return(<button key={h} onClick={()=>setSelHora(sel?null:h)}
+              style={{background:sel?"linear-gradient(135deg,#FF5C1A,#da4600)":"rgba(255,255,255,.04)",border:`1px solid ${sel?"#FF5C1A":"rgba(255,255,255,.08)"}`,borderRadius:8,padding:"10px 4px",cursor:"pointer",transition:"all .2s"}}>
+              <div style={{fontSize:11,fontWeight:700,color:sel?"white":"rgba(255,255,255,.75)"}}>{h}</div>
             </button>);
           })}
-        </div>
-      </>)}
+        </div>}
+      </>}
       {/* Confirmar */}
-      {selDia&&selHora&&(
-        <div style={{animation:"fadeUp .35s ease"}}>
-          <div style={{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.07)",borderRadius:9,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#c9956c",fontWeight:600}}>
-            ✨ {selDia.label} · {selHora} · 30 minutos
-          </div>
-          <button disabled={status==="loading"} onClick={confirmar} style={{background:"linear-gradient(135deg,#c9956c,#b8845b)",color:"white",border:"none",borderRadius:10,padding:"14px 20px",fontSize:14,fontWeight:700,cursor:"pointer",width:"100%",fontFamily:"'Jost',sans-serif",boxShadow:"0 8px 24px rgba(201,149,108,.25)",transition:"all .2s"}}>
-            {status==="loading"?"Confirmando...":"Confirmar minha call →"}
-          </button>
-          <div style={{fontSize:10,color:"rgba(255,255,255,.2)",textAlign:"center",marginTop:8}}>Confirmação no WhatsApp em instantes</div>
+      {selDia&&selHora&&<div style={{animation:"fadeUp .35s ease"}}>
+        <div style={{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.07)",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:12,color:"rgba(240,217,204,.6)",textAlign:"center"}}>
+          ✨ {selDia.label} · {selHora} · 30 minutos
         </div>
-      )}
+        {erroSalvar&&<div style={{background:"rgba(239,68,68,.07)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px",marginBottom:10,fontSize:11,color:"#ef4444",textAlign:"center"}}>{erroSalvar}</div>}
+        <button disabled={status==="loading"} onClick={confirmar}
+          style={{background:status==="loading"?"rgba(255,255,255,.04)":"linear-gradient(135deg,#FF5C1A,#da4600)",border:"none",borderRadius:12,padding:"15px",cursor:status==="loading"?"not-allowed":"pointer",color:status==="loading"?"rgba(255,255,255,.3)":"white",fontSize:14,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",width:"100%",transition:"all .2s"}}>
+          {status==="loading"?"Confirmando...":"Confirmar minha call →"}
+        </button>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.2)",textAlign:"center",marginTop:10}}>Gratuita · 30 minutos · Diagnóstico ao vivo</div>
+      </div>}
     </div>
   );
 }
+
 
 /* ══════════════════════════════════════
    CANVAS PARTICLES
