@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const SB_URL = "https://ncqsuxqxujyfekjbgzch.supabase.co";
-const SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcXN1eHF4dWp5ZmVramJnemNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTcyMjAsImV4cCI6MjA5MDQ3MzIyMH0.xgwXSHE8dijOa7dtnzZ-CEG1_sP6L3yFvp3JYJ7LE3w";
+// Supabase acessado apenas via backend (Hub) — nunca expor chaves no frontend
+const HUB_URL = window.location.origin.includes("clinica.wylvex.com")
+  ? "https://wylvex-backend-production.up.railway.app"
+  : window.location.origin; // dev: mesmo servidor
 const HUB     = "https://wylvex-backend-production.up.railway.app";
 
 // ── Config da LP ──
@@ -60,12 +62,12 @@ const V_TEXTO = {
 const VT = V_TEXTO[RC.vertical] || V_TEXTO.harmonizacao;
 
 async function sbInsert(table, body) {
+  // Proxy via Hub backend — nunca acessa Supabase diretamente do frontend
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    const r = await fetch(`${HUB_URL}/api/lp/insert`, {
       method: "POST",
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
-        "Content-Type": "application/json", Prefer: "return=representation" },
-      body: JSON.stringify(body)
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ table, data: body })
     });
     return await r.json();
   } catch { return null; }
@@ -344,8 +346,7 @@ function Agendador({leadData}){
 
   const carregarOcupados=async()=>{
     try{
-      const r=await fetch(`${SB_URL}/rest/v1/reunioes?clinica_id=eq.wylvex&status=eq.agendada&select=data,hora`,
-        {headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
+      const r=await fetch(`${HUB_URL}/api/lp/agenda-slots`);
       const rows=await r.json();
       const b={};(rows||[]).forEach(x=>{if(x.data&&x.hora)b[`${x.data}:${x.hora}`]=true;});
       setBlocked(b);
