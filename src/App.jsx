@@ -88,7 +88,6 @@ async function salvarLead(dados) {
     pacientes: parseInt(dados.pacientes)||20,
     dor: dados.dor||"",
     perda: perda,
-    score: Math.min(99, 60+(perda>5000?20:perda>2000?12:5)+(dados.dor?8:0)),
     status: "novo", origem: "lp-ritual"
   };
   const [lead] = await sbInsert("leads", row)||[null];
@@ -115,7 +114,15 @@ const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const MESES=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
 function calcPerda(p,t){return Math.round((p||20)*(t||500)*0.18);}
-function sanitize(s){return typeof s==="string"?s.trim().replace(/[<>]/g,"").slice(0,150):s;}
+function sanitize(s){
+  if(typeof s !== "string") return s;
+  return s
+    .trim()
+    .replace(/[<>"'`]/g,"")      // remove HTML/JS injection chars
+    .replace(/\0/g,"")           // remove null bytes
+    .replace(/[\u200B-\u200D\uFEFF]/g,"")  // remove zero-width unicode tricks
+    .slice(0,200);
+}
 
 function gerarSlots(){
   const slots=[];
@@ -486,8 +493,12 @@ export default function App() {
     if(step < ETAPAS.length) { setStep(s => s+1); topRef.current?.scrollIntoView({behavior:"smooth"}); }
   };
 
+  const _lastSubmit = useRef(0);
   const enviar = async () => {
     if(!form.nome?.trim()||!form.whatsapp?.trim()) return;
+    // Throttle: max 1 submit por 10s (anti-spam / slow connection)
+    if(Date.now() - _lastSubmit.current < 10000) return;
+    _lastSubmit.current = Date.now();
     fbTrack("InitiateCheckout",{content_name:"diagnostico_ritual",currency:"BRL",value:Math.round(perda||0)});
     setLoading(true);
     const dados = { ...res, ...form, perda };
@@ -804,17 +815,17 @@ export default function App() {
 
                       {/* Email — opcional */}
                       <div style={{ position:"relative" }}>
-                        <div style={{ fontSize:9, color: form.email?.includes("@") ? "rgba(16,185,129,.7)" : "rgba(255,255,255,.2)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                        <div style={{ fontSize:9, color: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email||"") ? "rgba(16,185,129,.7)" : "rgba(255,255,255,.2)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                            {form.email?.includes("@") && <span style={{ fontSize:10 }}>✓</span>}
+                            {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email||"") && <span style={{ fontSize:10 }}>✓</span>}
                             E-mail
                           </div>
                           <span style={{ fontSize:8, color:"rgba(255,255,255,.2)", fontWeight:400, letterSpacing:0, textTransform:"none" }}>opcional — receba o diagnóstico também por e-mail</span>
                         </div>
                         <input type="email" placeholder="dra.maria@clinica.com.br" value={form.email||""} onChange={e=>F("email",sanitize(e.target.value))}
-                          style={{ ...S.inp, borderColor: form.email?.includes("@") ? "rgba(16,185,129,.4)" : "rgba(255,255,255,.05)", opacity:.75, boxShadow: form.email?.includes("@") ? "0 0 0 3px rgba(16,185,129,.06)" : "none", transition:"all .3s", fontSize:13 }}
+                          style={{ ...S.inp, borderColor: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email||"") ? "rgba(16,185,129,.4)" : "rgba(255,255,255,.05)", opacity:.75, boxShadow: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email||"") ? "0 0 0 3px rgba(16,185,129,.06)" : "none", transition:"all .3s", fontSize:13 }}
                           onFocus={e=>{e.target.style.borderColor="rgba(255,92,26,.5)";e.target.style.opacity="1";e.target.style.boxShadow="0 0 0 3px rgba(255,92,26,.08)";}}
-                          onBlur={e=>{const ok=form.email?.includes("@");e.target.style.borderColor=ok?"rgba(16,185,129,.4)":"rgba(255,255,255,.05)";e.target.style.opacity=ok?"1":".75";e.target.style.boxShadow=ok?"0 0 0 3px rgba(16,185,129,.06)":"none";}}/>
+                          onBlur={e=>{const ok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email||"");e.target.style.borderColor=ok?"rgba(16,185,129,.4)":"rgba(255,255,255,.05)";e.target.style.opacity=ok?"1":".75";e.target.style.boxShadow=ok?"0 0 0 3px rgba(16,185,129,.06)":"none";}}/>
                       </div>
                     </div>
 
