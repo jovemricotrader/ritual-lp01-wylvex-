@@ -90,7 +90,7 @@ async function salvarLead(dados) {
     nome: dados.nome, clinica: dados.clinica||"",
     whatsapp: (dados.whatsapp||"").replace(/\D/g,""),
     tel: (dados.whatsapp||"").replace(/\D/g,""),
-    email: dados.email||"",
+    email: (dados.email||"").replace(/[<>"'`]/g,"").slice(0,200),
     pacientes: parseInt(dados.pacientes)||20,
     dor: dados.dor||"",
     perda: perda,
@@ -107,13 +107,19 @@ async function salvarReuniao(dados){
     nome:dados.nome, clinica:dados.clinica||"", tel:dados.tel||"",
     whatsapp:dados.tel||"", email:dados.email||"",
     data:dados.data, hora:dados.hora, dia:dados.dia,
-    score:dados.score||0, perda:dados.perda||0,
+    score:0, perda:dados.perda||0, // score calculado pelo Hub, nunca pelo usuário
     status:"agendada", origem:"lp-ritual", clinica_id:"wylvex",
     meet_link:"https://meet.google.com/wylvex-ritual"
   };
   await sbInsert("reunioes", nova);
   fbTrack("Schedule",{content_name:"Call Ritual",currency:"BRL",value:nova.perda||0});
-  try{await fetch(`${HUB}/api/confirm-lead`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...dados,phone:dados.tel||dados.whatsapp||"",data:dados.data,hora:dados.hora})});}catch{}
+  // Whitelist explícito — nunca spread direto pro confirm-lead
+  const payload={
+    phone:dados.tel||dados.whatsapp||"",nome:dados.nome||"",
+    clinica:dados.clinica||"",email:dados.email||"",
+    perda:dados.perda||0,data:dados.data,hora:dados.hora
+  };
+  try{await fetch(`${HUB}/api/confirm-lead`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});}catch{}
 }
 
 const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
