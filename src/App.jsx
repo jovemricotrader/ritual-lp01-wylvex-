@@ -80,10 +80,11 @@ async function fetchLpToken(force=false){
 
 async function sbInsert(table, body, extras={}) {
   // Proxy via Hub backend — 5 camadas de segurança no servidor.
+  // Retorna { ok: bool, data?, status?, msg? } — callers DEVEM checar .ok antes de avançar UI.
   const token = await fetchLpToken();
   if(!token) {
     console.warn("[LP] sem token — insert bloqueado");
-    return null;
+    return { ok:false, status:0, msg:"sem_token" };
   }
   try {
     const r = await fetch(`${HUB_URL}/api/lp/insert`, {
@@ -95,18 +96,26 @@ async function sbInsert(table, body, extras={}) {
       body: JSON.stringify({
         table,
         data: body,
-        _hp: extras._hp || "",                    // honeypot (deve estar vazio)
-        _r: Date.now() - _PAGE_LOAD_TS            // tempo na página em ms
+        _hp: extras._hp || ""                       // honeypot (deve estar vazio)
       })
     });
-    if(r.status === 401) {
-      console.warn("[LP] 401, renovando token");
+    if(r.status === 401 || r.status === 429) {
+      // Token expirou ou esgotou — renova e sinaliza falha pra caller tentar de novo
+      console.warn("[LP] token problema:", r.status);
       await fetchLpToken(true);
-      return null;
+      return { ok:false, status:r.status, msg:"token_renovado_tente_novamente" };
     }
-    if(!r.ok) { console.warn("[LP] insert status:", r.status); return null; }
-    return await r.json();
-  } catch(e) { console.warn("[LP] insert error:", e?.message); return null; }
+    if(!r.ok) {
+      const body = await r.text().catch(()=>"");
+      console.warn("[LP] insert status:", r.status, body);
+      return { ok:false, status:r.status, msg:"erro_servidor" };
+    }
+    const data = await r.json();
+    return { ok:true, data };
+  } catch(e) {
+    console.warn("[LP] insert error:", e?.message);
+    return { ok:false, status:0, msg:"erro_rede" };
+  }
 }
 
 function fbTrack(evt, data) {
@@ -127,8 +136,12 @@ async function salvarLead(dados) {
     status: "novo", origem: "lp-ritual"
   };
   // Passa honeypot pro sbInsert — bot preenche esse campo, humano não
-  const result = await sbInsert("leads", row, { _hp: dados._hp || "" })||[null];
-  const [lead] = result;
+  const result = await sbInsert("leads", row, { _hp: dados._hp || "" });
+  if(!result.ok) {
+    // Backend rejeitou (validação / token / rede) — lança pra caller mostrar erro real.
+    throw new Error(result.msg || "erro_insert_lead");
+  }
+  const [lead] = result.data || [null];
   fbTrack("Lead", { content_name: "Diagnóstico Ritual", currency: "BRL", value: Math.round(perda/12) });
   return lead;
 }
@@ -142,7 +155,12 @@ async function salvarReuniao(dados){
     status:"agendada", origem:"lp-ritual", clinica_id:"wylvex",
     meet_link:"https://meet.google.com/wylvex-ritual"
   };
-  await sbInsert("reunioes", nova, { _hp: dados._hp || "" });
+  const result = await sbInsert("reunioes", nova, { _hp: dados._hp || "" });
+  if(!result.ok) {
+    // CRÍTICO: antes isso falhava silencioso, LP mostrava "Call confirmada" falsa,
+    // reunião NUNCA entrava no banco e slot ficava livre pros próximos.
+    throw new Error(result.msg || "erro_insert_reuniao");
+  }
   fbTrack("Schedule",{content_name:"Call Ritual",currency:"BRL",value:nova.perda||0});
   // Whitelist explícito — nunca spread direto pro confirm-lead
   const payload={
@@ -579,6 +597,7 @@ export default function App() {
   };
 
   const _lastSubmit = useRef(0);
+  const [erroEnvio, setErroEnvio] = useState(null);
   const enviar = async () => {
     if(!form.nome?.trim()||!form.whatsapp?.trim()) return;
     // Throttle: max 1 submit por 10s (anti-spam / slow connection)
@@ -586,18 +605,17 @@ export default function App() {
     _lastSubmit.current = Date.now();
     fbTrack("InitiateCheckout",{content_name:"diagnostico_ritual",currency:"BRL",value:Math.round(perda||0)});
     setLoading(true);
+    setErroEnvio(null);
     try {
       const dados = { ...res, ...form, perda, _hp: hp };
       const lead = await salvarLead(dados);
-      // Não avança se lead não foi salvo (erro de rede ou rejeição do Hub)
-      if(!lead?.id && lead !== null) {
-        // lead===null = sbInsert retornou null (catch silencioso) — ainda avança pois
-        // confirm-lead vai salvar depois. Mas se for objeto vazio sem id, algo deu errado.
-      }
+      // Agora salvarLead lança se falhar — cai no catch, NÃO avança
       setSavedLead({ ...dados, id: lead?.id });
       setStep(5);
     } catch(e) {
       console.error("[LP] enviar error:", e);
+      // Mostra erro real pro usuário — antes falhava silencioso
+      setErroEnvio("Não foi possível enviar agora. Tente novamente em instantes ou fale com a gente no WhatsApp abaixo.");
     } finally {
       setLoading(false);
     }
@@ -944,6 +962,14 @@ export default function App() {
                         </div>
                       ))}
                     </div>
+
+                    {/* ── ERRO DE ENVIO — visível só se backend rejeitou ── */}
+                    {erroEnvio && (
+                      <div style={{ background:"rgba(239,68,68,.07)", border:"1px solid rgba(239,68,68,.2)", borderRadius:10, padding:"10px 12px", marginBottom:10, fontSize:11, color:"#ef4444", lineHeight:1.5, display:"flex", alignItems:"flex-start", gap:8 }}>
+                        <span style={{ fontSize:14, lineHeight:1 }}>⚠</span>
+                        <span style={{ flex:1 }}>{erroEnvio}</span>
+                      </div>
+                    )}
 
                     {/* ── CTA BUTTON — inteligente ── */}
                     {(()=>{
