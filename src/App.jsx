@@ -66,6 +66,11 @@ const LP_SECRET = import.meta.env.VITE_LP_SECRET || "";
 
 async function sbInsert(table, body) {
   // Proxy via Hub backend — nunca acessa Supabase diretamente do frontend
+  // Guard: sem token configurado, não envia (evita 401 silencioso)
+  if(!LP_SECRET) {
+    console.warn("[LP] VITE_LP_SECRET não configurado — insert bloqueado");
+    return null;
+  }
   try {
     const r = await fetch(`${HUB_URL}/api/lp/insert`, {
       method: "POST",
@@ -75,7 +80,9 @@ async function sbInsert(table, body) {
       },
       body: JSON.stringify({ table, data: body })
     });
-    return await r.json();
+    const data = await r.json();
+    if(r.status === 401) { console.error("[LP] insert: 401 — checar VITE_LP_SECRET"); return null; }
+    return data;
   } catch { return null; }
 }
 
@@ -87,7 +94,7 @@ async function salvarLead(dados) {
   const perda = calcPerda(dados.pacientes, dados.ticket);
   const row = {
     clinica_id: "wylvex",
-    nome: dados.nome, clinica: dados.clinica||"",
+    nome: sanitize(dados.nome||"")||"Lead", clinica: sanitize(dados.clinica||""),
     whatsapp: (dados.whatsapp||"").replace(/\D/g,""),
     tel: (dados.whatsapp||"").replace(/\D/g,""),
     email: (dados.email||"").replace(/[<>"'`]/g,"").slice(0,200),
@@ -482,9 +489,7 @@ export default function App() {
   useEffect(() => {
     const ck = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth < 1024 && window.innerWidth >= 768); };
     window.addEventListener("resize", ck);
-    // Simula contagem de vagas decrescendo
-    const t = setTimeout(() => setVagas(2), 45000);
-    return () => { window.removeEventListener("resize", ck); clearTimeout(t); };
+    return () => { window.removeEventListener("resize", ck); };
   }, []);
 
   const perda = calcPerda(res.pacientes, res.ticket);
@@ -513,11 +518,21 @@ export default function App() {
     _lastSubmit.current = Date.now();
     fbTrack("InitiateCheckout",{content_name:"diagnostico_ritual",currency:"BRL",value:Math.round(perda||0)});
     setLoading(true);
-    const dados = { ...res, ...form, perda };
-    const lead = await salvarLead(dados);
-    setSavedLead({ ...dados, id: lead?.id });
-    setLoading(false);
-    setStep(5);
+    try {
+      const dados = { ...res, ...form, perda };
+      const lead = await salvarLead(dados);
+      // Não avança se lead não foi salvo (erro de rede ou rejeição do Hub)
+      if(!lead?.id && lead !== null) {
+        // lead===null = sbInsert retornou null (catch silencioso) — ainda avança pois
+        // confirm-lead vai salvar depois. Mas se for objeto vazio sem id, algo deu errado.
+      }
+      setSavedLead({ ...dados, id: lead?.id });
+      setStep(5);
+    } catch(e) {
+      console.error("[LP] enviar error:", e);
+    } finally {
+      setLoading(false);
+    }
     topRef.current?.scrollIntoView({behavior:"smooth"});
   };
 
