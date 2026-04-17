@@ -61,14 +61,28 @@ const V_TEXTO = {
 };
 const VT = V_TEXTO[RC.vertical] || V_TEXTO.harmonizacao;
 
-// Token de autenticação para o Hub — definido em VITE_LP_SECRET no Railway
-const LP_SECRET = import.meta.env.VITE_LP_SECRET || "";
+// Token de autenticação para o Hub — agora vem do /api/lp/token (HMAC efêmero).
+// Nada de VITE_LP_SECRET no bundle — aquilo vazava 100% no JS público.
+let _LP_TOKEN = "";
+let _LP_TOKEN_FETCHED_AT = 0;
+const _PAGE_LOAD_TS = Date.now();
 
-async function sbInsert(table, body) {
-  // Proxy via Hub backend — nunca acessa Supabase diretamente do frontend
-  // Guard: sem token configurado, não envia (evita 401 silencioso)
-  if(!LP_SECRET) {
-    console.warn("[LP] VITE_LP_SECRET não configurado — insert bloqueado");
+async function fetchLpToken(force=false){
+  // Token expira em 30min no backend. Renova a cada 25min (margem) ou força.
+  if(!force && _LP_TOKEN && Date.now()-_LP_TOKEN_FETCHED_AT < 25*60*1000) return _LP_TOKEN;
+  try {
+    const r = await fetch(`${HUB_URL}/api/lp/token`, { method:"GET", credentials:"omit" });
+    const j = await r.json();
+    if(j?.token) { _LP_TOKEN = j.token; _LP_TOKEN_FETCHED_AT = Date.now(); }
+  } catch(e) { console.warn("[LP] token fetch falhou:", e?.message); }
+  return _LP_TOKEN;
+}
+
+async function sbInsert(table, body, extras={}) {
+  // Proxy via Hub backend — 5 camadas de segurança no servidor.
+  const token = await fetchLpToken();
+  if(!token) {
+    console.warn("[LP] sem token — insert bloqueado");
     return null;
   }
   try {
@@ -76,14 +90,23 @@ async function sbInsert(table, body) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-lp-secret": LP_SECRET
+        "x-lp-token": token
       },
-      body: JSON.stringify({ table, data: body })
+      body: JSON.stringify({
+        table,
+        data: body,
+        _hp: extras._hp || "",                    // honeypot (deve estar vazio)
+        _r: Date.now() - _PAGE_LOAD_TS            // tempo na página em ms
+      })
     });
-    const data = await r.json();
-    if(r.status === 401) { console.error("[LP] insert: 401 — checar VITE_LP_SECRET"); return null; }
-    return data;
-  } catch { return null; }
+    if(r.status === 401) {
+      console.warn("[LP] 401, renovando token");
+      await fetchLpToken(true);
+      return null;
+    }
+    if(!r.ok) { console.warn("[LP] insert status:", r.status); return null; }
+    return await r.json();
+  } catch(e) { console.warn("[LP] insert error:", e?.message); return null; }
 }
 
 function fbTrack(evt, data) {
@@ -103,9 +126,10 @@ async function salvarLead(dados) {
     perda: perda,
     status: "novo", origem: "lp-ritual"
   };
-  const [lead] = await sbInsert("leads", row)||[null];
+  // Passa honeypot pro sbInsert — bot preenche esse campo, humano não
+  const result = await sbInsert("leads", row, { _hp: dados._hp || "" })||[null];
+  const [lead] = result;
   fbTrack("Lead", { content_name: "Diagnóstico Ritual", currency: "BRL", value: Math.round(perda/12) });
-  // confirm-lead só dispara no agendamento (evita dupla mensagem)
   return lead;
 }
 
@@ -118,7 +142,7 @@ async function salvarReuniao(dados){
     status:"agendada", origem:"lp-ritual", clinica_id:"wylvex",
     meet_link:"https://meet.google.com/wylvex-ritual"
   };
-  await sbInsert("reunioes", nova);
+  await sbInsert("reunioes", nova, { _hp: dados._hp || "" });
   fbTrack("Schedule",{content_name:"Call Ritual",currency:"BRL",value:nova.perda||0});
   // Whitelist explícito — nunca spread direto pro confirm-lead
   const payload={
@@ -126,7 +150,18 @@ async function salvarReuniao(dados){
     clinica:dados.clinica||"",email:dados.email||"",
     perda:dados.perda||0,data:dados.data,hora:dados.hora
   };
-  try{await fetch(`${HUB}/api/confirm-lead`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});}catch{}
+  try{
+    // confirm-lead agora exige token HMAC também (camada extra anti-spam via Z-API)
+    const token = await fetchLpToken();
+    await fetch(`${HUB}/api/confirm-lead`,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-lp-token": token || ""
+      },
+      body:JSON.stringify(payload)
+    });
+  }catch{}
 }
 
 const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
@@ -493,10 +528,15 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isTablet, setIsTablet] = useState(window.innerWidth < 1024 && window.innerWidth >= 768);
   const [scrollY, setScrollY] = useState(0); // fix: bar sticky dependia de var inexistente
-  useEffect(()=>{ fbTrack("PageView",{}); },[]);
+  useEffect(()=>{
+    fbTrack("PageView",{});
+    // Pré-fetch token HMAC para poder submeter — 5 camadas de segurança no backend
+    fetchLpToken();
+  },[]);
   const [step, setStep] = useState(0);       // 0=hero 1-4=funil 5=agendador 6=confirmado
   const [res, setRes] = useState({});
   const [form, setForm] = useState({});
+  const [hp, setHp] = useState("");          // honeypot — humano não preenche, bot preenche
   const [loading, setLoading] = useState(false);
   const [savedLead, setSavedLead] = useState(null);
   const [vagas, setVagas] = useState(3);
@@ -547,7 +587,7 @@ export default function App() {
     fbTrack("InitiateCheckout",{content_name:"diagnostico_ritual",currency:"BRL",value:Math.round(perda||0)});
     setLoading(true);
     try {
-      const dados = { ...res, ...form, perda };
+      const dados = { ...res, ...form, perda, _hp: hp };
       const lead = await salvarLead(dados);
       // Não avança se lead não foi salvo (erro de rede ou rejeição do Hub)
       if(!lead?.id && lead !== null) {
@@ -831,6 +871,13 @@ export default function App() {
 
                     {/* ── CAMPOS ── */}
                     <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:20 }}>
+
+                      {/* Honeypot — invisível pra humano, visível pra bots. Se preenchido, backend rejeita. */}
+                      <div aria-hidden="true" style={{ position:"absolute", left:"-9999px", top:"-9999px", width:1, height:1, overflow:"hidden", opacity:0, pointerEvents:"none" }}>
+                        <label>Não preencha este campo
+                          <input type="text" name="website" tabIndex={-1} autoComplete="off" value={hp} onChange={e=>setHp(e.target.value)} />
+                        </label>
+                      </div>
 
                       {/* Nome */}
                       <div style={{ position:"relative" }}>
