@@ -143,6 +143,8 @@ function sanitize(s){
     .slice(0,200);
 }
 
+// Janela curta de agenda: HOJE + PRÓXIMO DIA ÚTIL (max 2 dias).
+// Gap longo = no-show. Lead de anúncio perde a urgência em 24h+.
 function gerarSlots(){
   const slots=[];
   const now=new Date();
@@ -153,20 +155,31 @@ function gerarSlots(){
     return `${y}-${m}-${day}`;
   };
   const nowMin=now.getHours()*60+now.getMinutes();
-  const HORAS=["09:00","10:00","11:00","13:00","14:00","15:00","16:00"];
-  for(let d=0;d<=21;d++){
-    const dt=new Date(now.getFullYear(),now.getMonth(),now.getDate()+d);
-    if(dt.getDay()===0||dt.getDay()===6)continue;
+  // Horários expandidos — maximiza chance de slot hoje
+  const HORAS=["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"];
+
+  // Coleta até 2 dias úteis a partir de hoje
+  const diasAlvo=[];
+  let offset=0;
+  while(diasAlvo.length<2 && offset<=5){
+    const dt=new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset);
+    const isFds=dt.getDay()===0||dt.getDay()===6;
+    if(!isFds) diasAlvo.push({dt, isToday: offset===0});
+    offset++;
+  }
+
+  diasAlvo.forEach(({dt, isToday})=>{
     const dateStr=localDateStr(dt);
     HORAS.forEach(h=>{
       const [hh,mm]=h.split(":").map(Number);
       const slotMin=hh*60+mm;
-      if(d===0&&slotMin<=nowMin+90)return;
-      slots.push({dt,h,key:`${dateStr}:${h}`,
+      // Hoje: só slots com >=45min de antecedência (era 90min — era fricção demais)
+      if(isToday && slotMin<=nowMin+45) return;
+      slots.push({dt, h, key:`${dateStr}:${h}`,
         label:`${DIAS[dt.getDay()]}, ${dt.getDate()} de ${MESES[dt.getMonth()]}`,
         dateStr});
     });
-  }
+  });
   return slots;
 }
 
@@ -256,7 +269,7 @@ function RitualDemoAnimation() {
             {step >= 1 && (
               <div style={{ marginTop:10, padding:"8px 10px", background:"rgba(239,68,68,.06)", border:"1px solid rgba(239,68,68,.15)", borderRadius:8, animation:"fadeIn .4s ease" }}>
                 <div style={{ fontSize:9, color:"#ef4444", fontWeight:700, marginBottom:3 }}>⚠ SINAL DE ABANDONO DETECTADO</div>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,.4)" }}>Respostas diminuindo · 42 dias inatva · ciclo de toxina vencido</div>
+                <div style={{ fontSize:9, color:"rgba(255,255,255,.4)" }}>Respostas diminuindo · 42 dias inativa · ciclo de toxina vencido</div>
               </div>
             )}
           </div>
@@ -420,19 +433,21 @@ function Agendador({leadData}){
     <div>
       <div style={{fontSize:9,color:"rgba(201,149,108,.6)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
         <div style={{width:5,height:5,borderRadius:"50%",background:"#c9956c"}}/>
-        Agende sua call gratuita
+        Escolha agora — hoje ou amanhã
       </div>
-      {/* Dias */}
-      <div style={{fontSize:9,color:"rgba(240,217,204,.3)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Escolha o dia</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:5,marginBottom:16}}>
-        {diasUniq.slice(0,10).map((d,i)=>{
+      {/* Dias — no máximo 2 (hoje + próximo dia útil) */}
+      <div style={{fontSize:9,color:"rgba(240,217,204,.3)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Qual dia?</div>
+      <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.max(diasUniq.length,1)},minmax(0,1fr))`,gap:8,marginBottom:16}}>
+        {diasUniq.slice(0,2).map((d,i)=>{
           const sel=selDia?.dateStr===d.dateStr;
           const temVaga=slots.some(s=>s.dateStr===d.dateStr&&!blocked[s.key]);
+          const isToday=i===0 && d.dateStr===(()=>{const n=new Date();return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;})();
           return(<button key={i} disabled={!temVaga||loadingSlots} onClick={()=>{setSelDia(d);setSelHora(null);}}
-            style={{background:sel?"rgba(255,92,26,.15)":temVaga?"rgba(255,255,255,.04)":"rgba(255,255,255,.01)",border:`1.5px solid ${sel?"#FF5C1A":temVaga?"rgba(255,255,255,.08)":"rgba(255,255,255,.03)"}`,borderRadius:10,padding:"12px 4px",minHeight:"52px",cursor:temVaga&&!loadingSlots?"pointer":"not-allowed",opacity:temVaga?1:.35,transition:"all .2s"}}>
-            <div style={{fontSize:7,color:sel?"#FF5C1A":"rgba(255,255,255,.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:700}}>{["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.dt.getDay()]}</div>
-            <div style={{fontSize:14,fontWeight:700,color:sel?"#FF5C1A":temVaga?"rgba(255,255,255,.8)":"rgba(255,255,255,.3)",marginTop:1}}>{d.dt.getDate()}</div>
-            <div style={{fontSize:7,color:sel?"rgba(255,92,26,.6)":"rgba(255,255,255,.2)"}}>{["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][d.dt.getMonth()]}</div>
+            style={{background:sel?"rgba(255,92,26,.15)":temVaga?"rgba(255,255,255,.04)":"rgba(255,255,255,.01)",border:`1.5px solid ${sel?"#FF5C1A":temVaga?"rgba(255,255,255,.08)":"rgba(255,255,255,.03)"}`,borderRadius:10,padding:"14px 8px",minHeight:"68px",cursor:temVaga&&!loadingSlots?"pointer":"not-allowed",opacity:temVaga?1:.35,transition:"all .2s",position:"relative"}}>
+            {isToday && <div style={{position:"absolute",top:4,right:6,fontSize:7,color:"#FF5C1A",fontWeight:900,letterSpacing:1}}>HOJE</div>}
+            <div style={{fontSize:8,color:sel?"#FF5C1A":"rgba(255,255,255,.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:700}}>{["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.dt.getDay()]}</div>
+            <div style={{fontSize:20,fontWeight:700,color:sel?"#FF5C1A":temVaga?"rgba(255,255,255,.85)":"rgba(255,255,255,.3)",marginTop:2}}>{d.dt.getDate()}</div>
+            <div style={{fontSize:8,color:sel?"rgba(255,92,26,.6)":"rgba(255,255,255,.2)"}}>{["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][d.dt.getMonth()]}</div>
           </button>);
         })}
       </div>
@@ -477,6 +492,7 @@ function Agendador({leadData}){
 export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isTablet, setIsTablet] = useState(window.innerWidth < 1024 && window.innerWidth >= 768);
+  const [scrollY, setScrollY] = useState(0); // fix: bar sticky dependia de var inexistente
   useEffect(()=>{ fbTrack("PageView",{}); },[]);
   const [step, setStep] = useState(0);       // 0=hero 1-4=funil 5=agendador 6=confirmado
   const [res, setRes] = useState({});
@@ -489,7 +505,19 @@ export default function App() {
   useEffect(() => {
     const ck = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth < 1024 && window.innerWidth >= 768); };
     window.addEventListener("resize", ck);
-    return () => { window.removeEventListener("resize", ck); };
+    // Sticky bar depende de scroll — antes era referência pra var inexistente
+    let ticking = false;
+    const onScroll = () => {
+      if(!ticking) {
+        requestAnimationFrame(() => { setScrollY(window.scrollY||0); ticking=false; });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("resize", ck);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   const perda = calcPerda(res.pacientes, res.ticket);
@@ -797,7 +825,7 @@ export default function App() {
                         Para onde mandamos<br/><span style={{ color:"#FF5C1A" }}>seu diagnóstico?</span>
                       </h2>
                       <p style={{ fontSize:12, color:"rgba(255,255,255,.35)", lineHeight:1.7 }}>
-                        Menos de 30 segundos. A Equipe Ritual entra em contato em até 2 horas.
+                        Menos de 30 segundos. Na próxima tela você escolhe seu horário — hoje ou amanhã.
                       </p>
                     </div>
 
@@ -862,7 +890,7 @@ export default function App() {
 
                     {/* ── TRUST BAR ── */}
                     <div style={{ display:"flex", gap:14, marginBottom:16, padding:"10px 12px", background:"rgba(255,255,255,.02)", borderRadius:10, border:"1px solid rgba(255,255,255,.04)" }}>
-                      {[["🔒","Sem spam"],["⚡","Resposta em 2h"],["🎯","Demo ao vivo"]].map(([ic,txt])=>(
+                      {[["🔒","Sem spam"],["⚡","Horário hoje/amanhã"],["🎯","Demo ao vivo"]].map(([ic,txt])=>(
                         <div key={txt} style={{ display:"flex", alignItems:"center", gap:5, flex:1 }}>
                           <span style={{ fontSize:13 }}>{ic}</span>
                           <span style={{ fontSize:9, color:"rgba(255,255,255,.35)", fontWeight:600 }}>{txt}</span>
@@ -885,14 +913,10 @@ export default function App() {
                       );
                     })()}
 
-                    {/* Micro social proof */}
+                    {/* Reforço honesto sem números inventados */}
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:12 }}>
-                      <div style={{ display:"flex" }}>
-                        {["#FF5C1A","#D4AF37","#8b5cf6","#10b981","#06b6d4"].map((cor,i)=>(
-                          <div key={i} style={{ width:20, height:20, borderRadius:"50%", background:cor, border:"2px solid #0A0A0B", marginLeft:i>0?-8:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:900, color:"white" }}>{["C","M","J","A","R"][i]}</div>
-                        ))}
-                      </div>
-                      <span style={{ fontSize:10, color:"rgba(255,255,255,.25)" }}>+{vagas === 3 ? "12" : "10"} médicas receberam o diagnóstico hoje</span>
+                      <span style={{ fontSize:13 }}>🔒</span>
+                      <span style={{ fontSize:10, color:"rgba(255,255,255,.3)" }}>Seus dados ficam só com a equipe Ritual. Não compartilhamos, não vendemos.</span>
                     </div>
                   </div>
                 )}
@@ -923,10 +947,10 @@ export default function App() {
               <div style={{ animation:"fadeIn .6s ease" }}>
                 <div style={{ textAlign:"center", marginBottom:28 }}>
                   <div style={{ fontFamily:"'Unbounded',sans-serif", fontSize:18, fontWeight:900, color:"#F8F9FA", marginBottom:6 }}>
-                    {savedLead.nome?.split(" ")[0]}, diagnóstico concluído.
+                    {savedLead.nome?.split(" ")[0]}, diagnóstico pronto.
                   </div>
-                  <div style={{ fontSize:13, color:"rgba(240,217,204,.4)" }}>
-                    Equipe Ritual entra em contato em até <strong style={{ color:"#D4AF37" }}>2 horas</strong>
+                  <div style={{ fontSize:13, color:"rgba(240,217,204,.4)", lineHeight:1.6 }}>
+                    Garanta <strong style={{ color:"#D4AF37" }}>seu horário agora</strong> — hoje ou amanhã cedo.
                   </div>
                 </div>
 
@@ -967,8 +991,8 @@ export default function App() {
             <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":isTablet?"repeat(2,1fr)":"repeat(4,1fr)", gap:24 }}>
               {[
                 ["+65%","Taxa de retorno médio", "#FF5C1A"],
-                ["<48h","Primeira resposta automatizada","#D4AF37"],
-                ["R$490",`Mensalidade. ${VT.mensalidade_tag}`,"#10b981"],
+                ["<48h","Primeira mensagem automatizada","#D4AF37"],
+                ["1ª","paciente de retorno paga o sistema","#10b981"],
                 ["30 dias","Garantia. Resultado ou reembolso.","rgba(139,92,246,1)"],
               ].map(([n,l,cor]) => (
                 <Reveal key={n}>
@@ -1038,7 +1062,7 @@ export default function App() {
               </h2>
 
               <p style={{ fontSize:14, color:"rgba(240,217,204,.45)", lineHeight:1.8, marginBottom:36 }}>
-                Setup único de R$4.800. Mensalidade R$490/mês. Uma paciente de retorno paga o sistema.
+                Investimento único + mensalidade acessível. Uma paciente de retorno paga o sistema inteiro.
               </p>
 
               <button onClick={()=>{ setStep(step===0?1:step); topRef.current?.scrollIntoView({behavior:"smooth"}); }}
@@ -1047,25 +1071,34 @@ export default function App() {
               </button>
 
               <div style={{ fontSize:11, color:"rgba(255,255,255,.25)" }}>
-                30 minutos ao vivo · Sem compromisso · Garantia 30 dias
+                30 minutos · Demo ao vivo com seus números · Garantia 30 dias
               </div>
             </Reveal>
           </div>
         </section>
 
-        {/* ── SOCIAL PROOF STRIP ── */}
-        <div style={{ background:"rgba(16,185,129,.04)", borderTop:"1px solid rgba(16,185,129,.1)", borderBottom:"1px solid rgba(16,185,129,.1)", padding:"14px 24px", overflow:"hidden" }}>
-          <div style={{ display:"flex", gap:32, animation:"ticker 18s linear infinite", whiteSpace:"nowrap" }}>
-            {[...Array(3)].map((_,gi)=>(
-              <div key={gi} style={{ display:"flex", gap:32, flexShrink:0 }}>
-                {["Dra. Camila — Floripa","Dra. Rafaela — SP","Dra. Letícia — BH","Dra. Marina — Curitiba","Dra. Ana — Joinville","Dra. Juliana — Porto Alegre"].map((n,i)=>(
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-                    <div style={{ width:7, height:7, borderRadius:"50%", background:"#10b981" }}/>
-                    <span style={{ fontSize:11, color:"rgba(255,255,255,.35)" }}>{n} <span style={{ color:"#10b981", fontWeight:700 }}>agendou agora</span></span>
-                  </div>
-                ))}
-              </div>
-            ))}
+        {/* ── COMO É A DEMO ── transparência substitui ticker de prova social ── */}
+        <div style={{ background:"rgba(16,185,129,.025)", borderTop:"1px solid rgba(16,185,129,.1)", borderBottom:"1px solid rgba(16,185,129,.1)", padding:`${isMobile?"32px 20px":"40px 24px"}` }}>
+          <div style={{ maxWidth:720, margin:"0 auto" }}>
+            <div style={{ textAlign:"center", marginBottom:24 }}>
+              <div style={{ fontSize:9, color:"rgba(16,185,129,.7)", letterSpacing:3, textTransform:"uppercase", marginBottom:10, fontWeight:700 }}>● Como funciona a demonstração</div>
+              <h3 style={{ fontFamily:"'Unbounded',sans-serif", fontSize:isMobile?18:22, fontWeight:900, color:"#f0d9cc", lineHeight:1.15, letterSpacing:"-0.5px" }}>
+                30 minutos. Seus números. <span style={{ color:"#10b981" }}>Zero roteiro pronto.</span>
+              </h3>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)", gap:12 }}>
+              {[
+                ["1","Abrimos o sistema ao vivo","Com as informações que você passou no diagnóstico — nada de vídeo gravado."],
+                ["2","Mostramos o cálculo real","Quanto sua clínica perde hoje e quanto o Ritual recuperaria nos primeiros 30 dias."],
+                ["3","Você decide na hora (ou não)","Sem script de fechamento. Se fizer sentido, ativamos na semana. Se não, sem peso."],
+              ].map(([n,t,d]) => (
+                <div key={n} style={{ background:"rgba(255,255,255,.02)", border:"1px solid rgba(255,255,255,.05)", borderRadius:12, padding:"14px 16px" }}>
+                  <div style={{ fontFamily:"'Unbounded',sans-serif", fontSize:11, fontWeight:900, color:"#10b981", marginBottom:6, letterSpacing:1 }}>ETAPA {n}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:"#f0d9cc", marginBottom:4 }}>{t}</div>
+                  <div style={{ fontSize:11, color:"rgba(255,255,255,.4)", lineHeight:1.6 }}>{d}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
